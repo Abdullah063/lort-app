@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Role;
+use App\Models\PackageDefinition;
 use App\Services\SocialLoginService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -16,7 +17,6 @@ class AuthController extends Controller
     // =============================================
     public function register(Request $request)
     {
-        // 1. Gelen veriyi doğrula
         $request->validate([
             'name'     => 'required|string|max:100',
             'surname'  => 'required|string|max:100',
@@ -25,8 +25,6 @@ class AuthController extends Controller
             'password' => 'required|string|min:6|confirmed',
         ]);
 
-
-        // 2. Kullanıcı oluştur
         $user = User::create([
             'name'     => $request->name,
             'surname'  => $request->surname,
@@ -39,18 +37,18 @@ class AuthController extends Controller
         $userRole = Role::where('name', 'user')->first();
         if ($userRole) {
             $user->roles()->attach($userRole->id, [
-                'assigned_by' => null,  // sistem tarafından atandı
+                'assigned_by' => null,
                 'created_at'  => now(),
                 'updated_at'  => now(),
             ]);
         }
 
-        // 4. Varsayılan "free" üyelik oluştur 
-        
+        // 4. ✅ Varsayılan "free" üyelik oluştur
+        $this->assignFreePackage($user);
+
         // 5. Token üret
         $token = auth('api')->login($user);
 
-        // 6. Yanıt döndür
         return response()->json([
             'message' => 'Kayıt başarılı',
             'user'    => $user,
@@ -80,7 +78,6 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Kullanıcı var mı kontrol et (provider_id veya email ile)
         $user = User::where('provider', $socialUser['provider'])
             ->where('provider_id', $socialUser['provider_id'])
             ->first();
@@ -88,7 +85,6 @@ class AuthController extends Controller
         if (!$user && $socialUser['email']) {
             $user = User::where('email', $socialUser['email'])->first();
 
-            // Email ile kayıtlı ama farklı provider — hesabı bağla
             if ($user) {
                 $user->update([
                     'provider'    => $socialUser['provider'],
@@ -100,7 +96,6 @@ class AuthController extends Controller
 
         $isNewUser = false;
 
-        // Kullanıcı yoksa yeni kayıt oluştur
         if (!$user) {
             $isNewUser = true;
 
@@ -113,7 +108,6 @@ class AuthController extends Controller
                 'avatar'      => $socialUser['avatar'],
             ]);
 
-            // Varsayılan "user" rolünü ata
             $userRole = Role::where('name', 'user')->first();
             if ($userRole) {
                 $user->roles()->attach($userRole->id, [
@@ -122,19 +116,19 @@ class AuthController extends Controller
                     'updated_at'  => now(),
                 ]);
             }
+
+            // ✅ Yeni sosyal kullanıcıya da free üyelik ata
+            $this->assignFreePackage($user);
         }
 
-        // Hesap aktif mi?
         if (!$user->is_active) {
             return response()->json([
                 'message' => 'Hesabınız askıya alınmıştır',
             ], 403);
         }
 
-        // Son giriş tarihini güncelle
         $user->update(['last_login_at' => now()]);
 
-        // JWT token üret
         $token = auth('api')->login($user);
 
         return response()->json([
@@ -150,24 +144,20 @@ class AuthController extends Controller
     // =============================================
     public function login(Request $request)
     {
-        // 1. Gelen veriyi doğrula
         $request->validate([
             'email'    => 'required|email',
             'password' => 'required|string',
         ]);
 
-        // 2. Giriş bilgilerini kontrol et
         $credentials = $request->only('email', 'password');
         $token = auth('api')->attempt($credentials);
 
-        // 3. Başarısızsa hata döndür
         if (!$token) {
             return response()->json([
                 'message' => 'E-posta veya şifre hatalı',
             ], 401);
         }
 
-        // 4. Hesap aktif mi kontrol et
         $user = auth('api')->user();
         if (!$user->is_active) {
             auth('api')->logout();
@@ -176,10 +166,8 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // 5. Son giriş tarihini güncelle
         $user->update(['last_login_at' => now()]);
 
-        // 6. Token döndür
         return response()->json([
             'message' => 'Giriş başarılı',
             'user'    => $user,
@@ -218,13 +206,27 @@ class AuthController extends Controller
     public function me()
     {
         $user = auth('api')->user();
-
-        // Kullanıcının rollerini ve profilini de getir
         $user->load(['roles', 'entrepreneurProfile', 'company']);
 
         return response()->json([
             'user' => $user,
         ]);
+    }
+
+    // =============================================
+    // YARDIMCI: Free üyelik ata
+    // =============================================
+    private function assignFreePackage(User $user): void
+    {
+        $freePackage = PackageDefinition::where('name', 'free')->first();
+
+        if ($freePackage) {
+            $user->memberships()->create([
+                'package_id' => $freePackage->id,
+                'starts_at'  => now(),
+                'is_active'  => true,
+            ]);
+        }
     }
 
     // =============================================
@@ -235,7 +237,7 @@ class AuthController extends Controller
         return [
             'access_token' => $token,
             'token_type'   => 'bearer',
-            'expires_in'   => auth('api')->factory()->getTTL() * 60, // saniye cinsinden
+            'expires_in'   => auth('api')->factory()->getTTL() * 60,
         ];
     }
 }

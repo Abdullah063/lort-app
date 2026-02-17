@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('limit_code', 50);
             $table->integer('usage_count')->default(0);
-            $table->timestamp('period_start');                  // günlükse o günün başlangıcı
+            $table->dateTime('period_start');                 
             $table->timestamp('last_usage_at')->nullable();
             $table->timestamps();
 

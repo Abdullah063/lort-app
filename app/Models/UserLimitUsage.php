@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class UserLimitUsage extends Model
 {
-protected $fillable = [
+    protected $fillable = [
         'user_id',
         'limit_code',
         'usage_count',
@@ -17,8 +17,8 @@ protected $fillable = [
     protected function casts(): array
     {
         return [
-            'period_start' => 'datetime',
             'last_usage_at' => 'datetime',
+            
         ];
     }
 

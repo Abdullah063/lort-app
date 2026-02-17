@@ -15,7 +15,8 @@ class DatabaseSeeder extends Seeder
             DilSeeder::class,                // 3. Desteklenen diller
             HedefVeIlgiAlaniSeeder::class,   // 4. Hedefler ve ilgi alanları
             BildirimSablonuSeeder::class,    // 5. Bildirim şablonları
-            SuperAdminSeeder::class,         // 6. İlk super admin (en son!)
+            SuperAdminSeeder::class,         // 6. İlk super admin 
+            TestVerisiSeeder::class,         // 7. Test kullanıcıları (en son!)
         ]);
     }
 }
