@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Listing extends Model
 {
-  protected $fillable = [
+    protected $fillable = [
         'user_id',
         'title',
         'description',
@@ -17,4 +17,30 @@ class Listing extends Model
     {
         return $this->belongsTo(User::class);
     }
+  
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

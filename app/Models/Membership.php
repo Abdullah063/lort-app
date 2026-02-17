@@ -3,10 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Symfony\Component\CssSelector\Node\FunctionNode;
 
 class Membership extends Model
 {
-protected $fillable = [
+    protected $fillable = [
         'user_id',
         'package_id',
         'starts_at',
@@ -44,5 +45,33 @@ protected $fillable = [
     {
         return $this->hasMany(MembershipHistory::class);
     }
+    
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

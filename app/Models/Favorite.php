@@ -6,12 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Favorite extends Model
 {
-protected $fillable = [
+    protected $fillable = [
         'user_id',
-        'favorited_user_id',
+        'favorited_user_id'
     ];
 
-    // Favoriyi ekleyen kullanıcı
+    #favoriye ekleyen user
     public function user()
     {
         return $this->belongsTo(User::class);
