@@ -29,11 +29,15 @@ class User extends Authenticatable implements JWTSubject
         'phone',
         'email',
         'password',
+        'provider',
+        'provider_id',
+        'avatar',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'provider_id',
     ];
 
     protected function casts(): array

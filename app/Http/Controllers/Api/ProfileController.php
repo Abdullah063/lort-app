@@ -9,7 +9,61 @@ use Illuminate\Http\Request;
 class ProfileController extends Controller
 {
     // =============================================
-    // PROFİL OLUŞTUR 
+    // KULLANICI BİLGİLERİ GÜNCELLE (isim, soyisim, telefon)
+    // POST /api/profile/user-update
+    // =============================================
+    public function updateUser(Request $request)
+    {
+        $user = auth('api')->user();
+
+        $request->validate([
+            'name'    => 'sometimes|string|max:100',
+            'surname' => 'sometimes|string|max:100',
+            'phone'   => 'sometimes|nullable|string|max:20|unique:users,phone,' . $user->id,
+            'email'   => 'sometimes|email|unique:users,email,' . $user->id,
+        ]);
+
+        $user->update($request->only(['name', 'surname', 'phone', 'email']));
+
+        return response()->json([
+            'message' => 'Kullanıcı bilgileri güncellendi',
+            'user'    => $user->fresh(),
+        ]);
+    }
+
+    // =============================================
+    // PROFİL TAMAMLANMA DURUMU
+    // GET /api/profile/status
+    // =============================================
+    public function status()
+    {
+        $user = auth('api')->user();
+        $user->load(['entrepreneurProfile', 'company', 'goals', 'interests']);
+
+        $steps = [
+            'register'    => true, // buraya geldiyse zaten kayıt olmuş
+            'profile'     => $user->entrepreneurProfile !== null,
+            'goals'       => $user->goals->count() >= 1,
+            'interests'   => $user->interests->count() >= 1,
+            'company'     => $user->company !== null,
+        ];
+
+        $completed = collect($steps)->filter()->count();
+        $total = count($steps);
+        $is_complete = $completed === $total;
+
+        return response()->json([
+            'is_complete'      => $is_complete,
+            'completed_steps'  => $completed,
+            'total_steps'      => $total,
+            'percentage'       => round(($completed / $total) * 100),
+            'steps'            => $steps,
+            'next_step'        => $is_complete ? null : collect($steps)->filter(fn($v) => !$v)->keys()->first(),
+        ]);
+    }
+
+    // =============================================
+    // PROFİL OLUŞTUR (Kayıt sonrası ilk adım)
     // POST /api/profile
     // =============================================
     public function store(Request $request)

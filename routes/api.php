@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\InterestController;
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/social', [AuthController::class, 'socialLogin']);
 });
 
 // =============================================
@@ -28,6 +29,8 @@ Route::middleware('auth:api')->group(function () {
     });
 
     Route::prefix('profile')->group(function () {
+        Route::get('/status', [ProfileController::class, 'status']);
+        Route::post('/user-update', [ProfileController::class, 'updateUser']);
         Route::post('/', [ProfileController::class, 'store']);
         Route::get('/', [ProfileController::class, 'show']);
         Route::put('/', [ProfileController::class, 'update']);
@@ -43,14 +46,10 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/select', [InterestController::class, 'select']);
         Route::get('/my', [InterestController::class, 'my']);
     });
+    // Şirket alanı
     Route::prefix('company')->group(function () {
         Route::post('/', [CompanyController::class, 'store']);
         Route::get('/', [CompanyController::class, 'show']);
         Route::put('/', [CompanyController::class, 'update']);
     });
-
-    // Buraya ileride diğer route'lar eklenecek:
-    // Route::prefix('profile')->group(...)
-    // Route::prefix('discover')->group(...)
-    // Route::prefix('chat')->group(...)
 });
