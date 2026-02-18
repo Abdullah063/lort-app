@@ -94,6 +94,7 @@ Route::middleware('auth:api')->group(function () {
 
     // Mesajlaşma
     Route::get('/conversations', [MessageController::class, 'conversations']);
+    Route::post('/conversations/direct', [MessageController::class, 'startDirect']);
     Route::prefix('conversations/{conversationId}')->group(function () {
         Route::get('/messages', [MessageController::class, 'messages']);
         Route::post('/messages', [MessageController::class, 'send']);

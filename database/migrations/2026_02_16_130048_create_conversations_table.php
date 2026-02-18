@@ -6,21 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('conversations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('match_id')->unique()->constrained('matches')->cascadeOnDelete();
+            $table->foreignId('match_id')->nullable()->unique()->constrained('matches')->cascadeOnDelete();
+            $table->foreignId('started_by')->nullable()->constrained('users')->cascadeOnDelete();
+            $table->foreignId('target_user_id')->nullable()->constrained('users')->cascadeOnDelete();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('conversations');

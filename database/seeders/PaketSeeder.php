@@ -10,9 +10,7 @@ class PaketSeeder extends Seeder
 {
     public function run(): void
     {
-        // =============================================
-        // PAKETLER
-        // =============================================
+
         $free = PackageDefinition::create([
             'name'           => 'free',
             'display_name'   => 'Ücretsiz',
@@ -46,10 +44,7 @@ class PaketSeeder extends Seeder
             'sort_order'     => 3,
         ]);
 
-        // =============================================
-        // LİMİTLER
-        // -1 = sınırsız, 0 = kapalı
-        // =============================================
+
         $limits = [
             // Günlük Like
             ['package_id' => $free->id,   'limit_code' => 'daily_like',       'limit_name' => 'Günlük Beğeni',        'limit_value' => 10,  'period' => 'daily'],
@@ -80,6 +75,24 @@ class PaketSeeder extends Seeder
             ['package_id' => $free->id,   'limit_code' => 'daily_message',    'limit_name' => 'Günlük Mesaj',         'limit_value' => 20,  'period' => 'daily'],
             ['package_id' => $silver->id, 'limit_code' => 'daily_message',    'limit_name' => 'Günlük Mesaj',         'limit_value' => 100, 'period' => 'daily'],
             ['package_id' => $gold->id,   'limit_code' => 'daily_message',    'limit_name' => 'Günlük Mesaj',         'limit_value' => -1,  'period' => 'daily'],
+
+            // Bildirim Limitleri
+            ['package_id' => $free->id,   'limit_code' => 'notify_like',    'limit_name' => 'Like Bildirimi',     'limit_value' => 0,   'period' => 'total'],
+            ['package_id' => $silver->id, 'limit_code' => 'notify_like',    'limit_name' => 'Like Bildirimi',     'limit_value' => -1,  'period' => 'total'],
+            ['package_id' => $gold->id,   'limit_code' => 'notify_like',    'limit_name' => 'Like Bildirimi',     'limit_value' => -1,  'period' => 'total'],
+
+            ['package_id' => $free->id,   'limit_code' => 'notify_match',   'limit_name' => 'Eşleşme Bildirimi', 'limit_value' => -1,  'period' => 'total'],
+            ['package_id' => $silver->id, 'limit_code' => 'notify_match',   'limit_name' => 'Eşleşme Bildirimi', 'limit_value' => -1,  'period' => 'total'],
+            ['package_id' => $gold->id,   'limit_code' => 'notify_match',   'limit_name' => 'Eşleşme Bildirimi', 'limit_value' => -1,  'period' => 'total'],
+
+            ['package_id' => $free->id,   'limit_code' => 'notify_message', 'limit_name' => 'Mesaj Bildirimi',   'limit_value' => -1,  'period' => 'total'],
+            ['package_id' => $silver->id, 'limit_code' => 'notify_message', 'limit_name' => 'Mesaj Bildirimi',   'limit_value' => -1,  'period' => 'total'],
+            ['package_id' => $gold->id,   'limit_code' => 'notify_message', 'limit_name' => 'Mesaj Bildirimi',   'limit_value' => -1,  'period' => 'total'],
+
+            // Direkt Mesaj (eşleşmesiz)
+            ['package_id' => $free->id,   'limit_code' => 'direct_message', 'limit_name' => 'Direkt Mesaj',  'limit_value' => 0,   'period' => 'daily'],
+            ['package_id' => $silver->id, 'limit_code' => 'direct_message', 'limit_name' => 'Direkt Mesaj',  'limit_value' => 1,   'period' => 'daily'],
+            ['package_id' => $gold->id,   'limit_code' => 'direct_message', 'limit_name' => 'Direkt Mesaj',  'limit_value' => -1,  'period' => 'daily'],
         ];
 
         foreach ($limits as $limit) {

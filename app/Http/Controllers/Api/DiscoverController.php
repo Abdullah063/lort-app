@@ -7,8 +7,8 @@ use App\Models\User;
 use App\Models\Swipe;
 use App\Models\UserMatch;
 use App\Models\Conversation;
-use App\Models\UserNotification;
 use App\Services\LimitService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class DiscoverController extends Controller
@@ -94,10 +94,21 @@ class DiscoverController extends Controller
             'type'      => $request->type,
         ]);
 
-        // ✅ Kullanımı artır
+        // ✅ Like/Super Like bildirimi gönder (paket kontrolü servis içinde)
         if (in_array($request->type, ['like', 'super_like'])) {
             $limitCode = $request->type === 'super_like' ? 'daily_super_like' : 'daily_like';
             LimitService::increment($user->id, $limitCode);
+
+            // Beğenilen kişiye bildirim (paket kontrolü yapılır)
+            $notifyCheck = LimitService::check($request->swiped_id, 'notify_like');
+            if ($notifyCheck['allowed']) {
+                NotificationService::sendDirect(
+                    $request->swiped_id,
+                    $request->type,
+                    $request->type === 'super_like' ? 'Süper Beğeni!' : 'Yeni Beğeni!',
+                    "Birisi sizi beğendi!"
+                );
+            }
         }
 
         $result = [
@@ -158,22 +169,12 @@ class DiscoverController extends Controller
         $user1 = User::find($userId);
         $user2 = User::find($swipedId);
 
-        UserNotification::create([
-            'user_id'    => $userId,
-            'type'       => 'match',
-            'title'      => 'Yeni Eşleşme!',
-            'body'       => "{$user2->name} ile eşleştiniz. Sohbete başlayın!",
-            'is_read'    => false,
-            'email_sent' => false,
+        NotificationService::send($userId, 'match', [
+            'matched_name' => $user2->name,
         ]);
 
-        UserNotification::create([
-            'user_id'    => $swipedId,
-            'type'       => 'match',
-            'title'      => 'Yeni Eşleşme!',
-            'body'       => "{$user1->name} ile eşleştiniz. Sohbete başlayın!",
-            'is_read'    => false,
-            'email_sent' => false,
+        NotificationService::send($swipedId, 'match', [
+            'matched_name' => $user1->name,
         ]);
 
         return $match;

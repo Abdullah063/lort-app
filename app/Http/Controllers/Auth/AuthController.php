@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\PackageDefinition;
+use App\Services\NotificationService;
 use App\Services\SocialLoginService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -46,7 +47,10 @@ class AuthController extends Controller
         // 4. ✅ Varsayılan "free" üyelik oluştur
         $this->assignFreePackage($user);
 
-        // 5. Token üret
+        // 5. ✅ Hoşgeldin bildirimi
+        NotificationService::send($user->id, 'welcome');
+
+        // 6. Token üret
         $token = auth('api')->login($user);
 
         return response()->json([
@@ -119,6 +123,9 @@ class AuthController extends Controller
 
             // ✅ Yeni sosyal kullanıcıya da free üyelik ata
             $this->assignFreePackage($user);
+
+            // ✅ Hoşgeldin bildirimi
+            NotificationService::send($user->id, 'welcome');
         }
 
         if (!$user->is_active) {
