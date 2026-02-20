@@ -4,17 +4,20 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Interest;
+use App\Services\TranslationService;
 use Illuminate\Http\Request;
 
 class InterestController extends Controller
 {
     // =============================================
-    // TÜM İLGİ ALANLARINI LİSTELE (Seçim ekranı için)
+    // TÜM İLGİ ALANLARINI LİSTELE
     // GET /api/interests
     // =============================================
     public function index()
     {
         $interests = Interest::all(['id', 'name', 'description']);
+
+        TranslationService::translateMany('interests', $interests, ['name', 'description']);
 
         return response()->json([
             'interests' => $interests,
@@ -36,9 +39,12 @@ class InterestController extends Controller
 
         $user->interests()->sync($request->interest_ids);
 
+        $interests = $user->interests()->get(['interests.id', 'interests.name']);
+        TranslationService::translateMany('interests', $interests, ['name']);
+
         return response()->json([
             'message'   => 'İlgi alanları güncellendi',
-            'interests' => $user->interests()->get(['interests.id', 'interests.name']),
+            'interests' => $interests,
         ]);
     }
 
@@ -50,8 +56,11 @@ class InterestController extends Controller
     {
         $user = auth('api')->user();
 
+        $interests = $user->interests()->get(['interests.id', 'interests.name']);
+        TranslationService::translateMany('interests', $interests, ['name']);
+
         return response()->json([
-            'interests' => $user->interests()->get(['interests.id', 'interests.name']),
+            'interests' => $interests,
         ]);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\User;
 use App\Models\UserMatch;
 use App\Services\LimitService;
 use App\Services\NotificationService;
@@ -34,9 +35,9 @@ class MessageController extends Controller
             $lastMessage = $match->conversation?->messages->first();
             $unreadCount = $match->conversation
                 ? Message::where('conversation_id', $match->conversation->id)
-                    ->where('sender_id', '!=', $user->id)
-                    ->where('status', '!=', 'read')
-                    ->count()
+                ->where('sender_id', '!=', $user->id)
+                ->where('status', '!=', 'read')
+                ->count()
                 : 0;
 
             return [
@@ -56,11 +57,11 @@ class MessageController extends Controller
             })
             ->orWhere(function ($q) use ($user) {
                 $q->whereNull('match_id')
-                  ->where('started_by', $user->id);
+                    ->where('started_by', $user->id);
             })
             ->orWhere(function ($q) use ($user) {
                 $q->whereNull('match_id')
-                  ->where('target_user_id', $user->id);
+                    ->where('target_user_id', $user->id);
             })
             ->with(['messages' => function ($q) {
                 $q->latest()->limit(1);
@@ -86,7 +87,8 @@ class MessageController extends Controller
                 ];
             });
 
-        $all = $conversations->merge($directConversations)
+        $all = collect($conversations->all())
+            ->merge($directConversations->all())
             ->sortByDesc(function ($item) {
                 return $item['last_message']?->created_at ?? '0';
             })
@@ -231,7 +233,7 @@ class MessageController extends Controller
         // Kendine mesaj atamaz
         if ($request->target_user_id == $user->id) {
             return response()->json([
-                'message' => 'Kendinize mesaj gönderemezsiniz',
+                'message' => 'Kendini   ze mesaj gönderemezsiniz',
             ], 422);
         }
 
@@ -253,11 +255,11 @@ class MessageController extends Controller
         $existingConversation = Conversation::whereNull('match_id')
             ->where(function ($q) use ($user, $request) {
                 $q->where('started_by', $user->id)
-                  ->where('target_user_id', $request->target_user_id);
+                    ->where('target_user_id', $request->target_user_id);
             })->orWhere(function ($q) use ($user, $request) {
                 $q->whereNull('match_id')
-                  ->where('started_by', $request->target_user_id)
-                  ->where('target_user_id', $user->id);
+                    ->where('started_by', $request->target_user_id)
+                    ->where('target_user_id', $user->id);
             })->first();
 
         if ($existingConversation) {

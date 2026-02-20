@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('status', 20)->default('sent');  // sent / delivered / read
             $table->timestamps();
 
-            $table->index('conversation_id');               // sohbet mesajlarını hızlı çekmek için
+            $table->index('conversation_id');               // ilişkili yapmak için 
         });
     }
 

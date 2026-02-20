@@ -8,8 +8,18 @@ use App\Models\Role;
 use App\Models\PackageDefinition;
 use App\Services\NotificationService;
 use App\Services\SocialLoginService;
+use App\Services\SmsService;
+use App\Models\SmsVerificationCode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+
+use App\Models\EmailVerificationCode;
+use App\Mail\VerificationCodeMail;
+use Illuminate\Support\Facades\Mail;
+
+
+use App\Models\PasswordResetCode;
+use App\Mail\PasswordResetMail;
 
 class AuthController extends Controller
 {
@@ -44,11 +54,21 @@ class AuthController extends Controller
             ]);
         }
 
-        // 4. ✅ Varsayılan "free" üyelik oluştur
+        // 4.  Varsayılan "free" üyelik oluştur
         $this->assignFreePackage($user);
 
-        // 5. ✅ Hoşgeldin bildirimi
+        // 5.  Hoşgeldin bildirimi
         NotificationService::send($user->id, 'welcome');
+
+        // Doğrulama kodu gönder (dd)
+        EmailVerificationCode::where('user_id', $user->id)->delete();
+        $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        EmailVerificationCode::create([
+            'user_id'    => $user->id,
+            'code'       => $code,
+            'expires_at' => now()->addMinutes(10),
+        ]);
+        Mail::to($user->email)->send(new VerificationCodeMail($code));
 
         // 6. Token üret
         $token = auth('api')->login($user);
@@ -59,6 +79,62 @@ class AuthController extends Controller
             'token'   => $this->tokenResponse($token),
         ], 201);
     }
+    public function init(Request $request)
+    {
+        $request->validate([
+            'email' => 'required_without:phone|nullable|email|unique:users,email',
+            'phone' => 'required_without:email|nullable|string|max:20|unique:users,phone',
+        ]);
+
+        $user = User::create([
+            'name'    => 'Geçici',
+            'surname' => 'Kullanıcı',
+            'email'   => $request->email,
+            'phone'   => $request->phone,
+        ]);
+
+        $this->assignFreePackage($user);
+
+        // Email ile geldiyse mail kodu gönder
+        if ($request->email) {
+            $code = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+            EmailVerificationCode::create([
+                'user_id'    => $user->id,
+                'code'       => $code,
+                'expires_at' => now()->addMinutes(5),
+            ]);
+            Mail::to($user->email)->send(new VerificationCodeMail($code));
+        }
+
+        // Telefon ile geldiyse SMS gönder
+        if ($request->phone) {
+            $code = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+            SmsVerificationCode::create([
+                'user_id'    => $user->id,
+                'code'       => $code,
+                'expires_at' => now()->addMinutes(10),
+            ]);
+            SmsService::send($user->phone, "Doğrulama kodunuz: {$code}");
+        }
+
+        $token = auth('api')->login($user);
+
+        return response()->json([
+            'message' => 'Doğrulama kodu gönderildi',
+            'token'   => $this->tokenResponse($token),
+        ], 201);
+    }
+    public function setPassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $user = auth('api')->user();
+        $user->update(['password' => $request->password]);
+
+        return response()->json(['message' => 'Şifre belirlendi']);
+    }       
 
     // =============================================
     // SOSYAL MEDYA İLE GİRİŞ / KAYIT
@@ -121,10 +197,10 @@ class AuthController extends Controller
                 ]);
             }
 
-            // ✅ Yeni sosyal kullanıcıya da free üyelik ata
+            // Yeni sosyal kullanıcıya da free üyelik ata
             $this->assignFreePackage($user);
 
-            // ✅ Hoşgeldin bildirimi
+            // Hoşgeldin bildirimi
             NotificationService::send($user->id, 'welcome');
         }
 
@@ -246,5 +322,179 @@ class AuthController extends Controller
             'token_type'   => 'bearer',
             'expires_in'   => auth('api')->factory()->getTTL() * 60,
         ];
+    }
+
+    // =============================================
+    // DOĞRULAMA KODU GÖNDER
+    // POST /api/auth/send-verification
+    // =============================================
+    public function sendVerification()
+    {
+        $user = auth('api')->user();
+
+        if ($user->email_verified) {
+            return response()->json(['message' => 'E-posta zaten doğrulanmış'], 409);
+        }
+
+        // Önceki kodları sil
+        EmailVerificationCode::where('user_id', $user->id)->delete();
+
+        $code = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+
+        EmailVerificationCode::create([
+            'user_id'    => $user->id,
+            'code'       => $code,
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        Mail::to($user->email)->send(new VerificationCodeMail($code));
+
+        return response()->json(['message' => 'Doğrulama kodu gönderildi']);
+    }
+
+    // =============================================
+    // DOĞRULAMA KODUNU ONAYLA
+    // POST /api/auth/verify-email
+    // =============================================
+    public function verifyEmail(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string|size:4',
+        ]);
+
+        $user = auth('api')->user();
+
+        if ($user->email_verified) {
+            return response()->json(['message' => 'E-posta zaten doğrulanmış'], 409);
+        }
+
+        $record = EmailVerificationCode::where('user_id', $user->id)
+            ->where('code', $request->code)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (!$record) {
+            return response()->json(['message' => 'Kod hatalı veya süresi dolmuş'], 422);
+        }
+
+        $user->update(['email_verified' => true]);
+        $record->delete();
+
+        return response()->json(['message' => 'E-posta başarıyla doğrulandı']);
+    }
+
+    // =============================================
+    // ŞİFREMİ UNUTTUM - KOD GÖNDER
+    // POST /api/auth/forgot-password
+    // =============================================
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        // Önceki kodları sil
+        PasswordResetCode::where('user_id', $user->id)->delete();
+
+        $code = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+
+        PasswordResetCode::create([
+            'user_id'    => $user->id,
+            'code'       => $code,
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        Mail::to($user->email)->send(new PasswordResetMail($code));
+
+        return response()->json(['message' => 'Şifre sıfırlama kodu gönderildi']);
+    }
+
+    // =============================================
+    // ŞİFREMİ UNUTTUM - SIFIRLA
+    // POST /api/auth/reset-password
+    // =============================================
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email'                 => 'required|email|exists:users,email',
+            'code'                  => 'required|string|size:4',
+            'password'              => 'required|string|min:6|confirmed',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        $record = PasswordResetCode::where('user_id', $user->id)
+            ->where('code', $request->code)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (!$record) {
+            return response()->json(['message' => 'Kod hatalı veya süresi dolmuş'], 422);
+        }
+
+        $user->update(['password' => $request->password]);
+        $record->delete();
+
+        return response()->json(['message' => 'Şifre başarıyla sıfırlandı']);
+    }
+    // =============================================
+    // SMS DOĞRULAMA KODU GÖNDER
+    // POST /api/auth/send-sms-verification
+    // =============================================
+    public function sendSmsVerification()
+    {
+        $user = auth('api')->user();
+
+        if (!$user->phone) {
+            return response()->json(['message' => 'Telefon numarası bulunamadı'], 422);
+        }
+
+        // Önceki kodları sil
+        SmsVerificationCode::where('user_id', $user->id)->delete();
+
+        $code = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+
+        SmsVerificationCode::create([
+            'user_id'    => $user->id,
+            'code'       => $code,
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        $sent = SmsService::send($user->phone, " LORT dogrulama kodunuz: {$code}. 5 dakika geçerlidir.");
+
+        if (!$sent) {
+            return response()->json(['message' => 'SMS gönderilemedi'], 500);
+        }
+
+        return response()->json(['message' => 'SMS doğrulama kodu gönderildi']);
+    }
+
+    // =============================================
+    // SMS DOĞRULAMA KODUNU ONAYLA
+    // POST /api/auth/verify-phone
+    // =============================================
+    public function verifyPhone(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string|size:4',
+        ]);
+
+        $user = auth('api')->user();
+
+        $record = SmsVerificationCode::where('user_id', $user->id)
+            ->where('code', $request->code)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (!$record) {
+            return response()->json(['message' => 'Kod hatalı veya süresi dolmuş'], 422);
+        }
+
+        $user->update(['phone_verified' => true]);
+        $record->delete();
+
+        return response()->json(['message' => 'Telefon numarası başarıyla doğrulandı']);
     }
 }

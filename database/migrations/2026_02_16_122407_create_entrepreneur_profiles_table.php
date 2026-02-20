@@ -12,16 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('entrepreneur_profiles', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('user_id')->unique()->constrained('users')->cascadeOnDelete();
-    $table->string('category', 50);           // bireysel / kurumsal / diger
-    $table->string('profile_image_url')->nullable();
-    $table->date('birth_date')->nullable();
-    $table->text('about_me')->nullable();
-    $table->boolean('is_online')->default(false);
-    $table->timestamp('last_seen_at')->nullable();
-    $table->timestamps();
-});
+            $table->id();
+            $table->foreignId('user_id')->unique()->constrained('users')->cascadeOnDelete();
+            $table->string('category', 50);
+            $table->string('profile_image_url')->nullable();
+            $table->date('birth_date')->nullable();
+            $table->text('about_me')->nullable();
+            $table->boolean('is_online')->default(false);
+            $table->timestamp('last_seen_at')->nullable();
+            $table->timestamps();
+        });
     }
 
     /**

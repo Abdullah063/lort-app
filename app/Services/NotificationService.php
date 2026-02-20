@@ -8,20 +8,7 @@ use App\Models\UserNotification;
 
 class NotificationService
 {
-    /**
-     * Şablon bazlı bildirim gönder
-     *
-     * Kullanım:
-     *   NotificationService::send($userId, 'welcome');
-     *   NotificationService::send($userId, 'match', ['matched_name' => 'Ayşe']);
-     *   NotificationService::send($userId, 'package_congrats', ['package_name' => 'Silver']);
-     *   NotificationService::send($userId, 'receipt', ['amount' => '99.99', 'currency' => 'TRY']);
-     *
-     * @param int    $userId       Bildirimi alacak kullanıcı
-     * @param string $templateCode Şablon kodu (welcome, match, receipt, package_congrats)
-     * @param array  $variables    Şablondaki {{değişkenler}}
-     * @param string $lang         Dil kodu (null ise kullanıcının dili veya 'tr')
-     */
+
     public static function send(int $userId, string $templateCode, array $variables = [], ?string $lang = null): ?UserNotification
     {
         $user = User::find($userId);
@@ -41,7 +28,7 @@ class NotificationService
         }
 
         // Dil belirleme
-        $langCode = $lang ?? 'tr';
+        $langCode = $lang ?? 'en';
 
         // Şablonu bul
         $template = NotificationTemplate::where('template_code', $templateCode)
@@ -51,7 +38,7 @@ class NotificationService
         // Şablon bulunamazsa varsayılan dilde dene
         if (!$template) {
             $template = NotificationTemplate::where('template_code', $templateCode)
-                ->where('language_code', 'tr')
+                ->where('language_code', 'en')
                 ->first();
         }
 

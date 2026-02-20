@@ -15,10 +15,11 @@ class SuperAdminSeeder extends Seeder
         $superAdmin = User::create([
             'name'           => 'Super',
             'surname'        => 'Admin',
-            'email'          => 'admin@lordapp.com',
-            'password'       => Hash::make('Lord2026!'),  // İlk girişten sonra değiştir!
+            'email'          => 'admin@test.com',
+            'password'       => Hash::make('123456'),  
             'phone'          => null,
             'email_verified' => true,
+            'phone_verified' => true,
             'is_active'      => true,
         ]);
 

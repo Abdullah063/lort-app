@@ -14,6 +14,7 @@ return new class extends Migration
             $table->string('surname', 100);
             $table->string('email')->unique();
             $table->string('phone', 20)->nullable();
+            $table->boolean('phone_verified')->default(false);
             $table->string('password')->nullable();
             $table->string('provider', 20)->default('email');
             $table->string('provider_id')->nullable();

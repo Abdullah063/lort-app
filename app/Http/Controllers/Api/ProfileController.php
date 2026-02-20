@@ -6,6 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\EntrepreneurProfile;
 use Illuminate\Http\Request;
 
+
+use Illuminate\Support\Facades\Mail;
+use App\Mail\WelcomeMail;
+
+
 class ProfileController extends Controller
 {
     // =============================================
@@ -41,7 +46,7 @@ class ProfileController extends Controller
         $user->load(['entrepreneurProfile', 'company', 'goals', 'interests']);
 
         $steps = [
-            'register'    => true, // buraya geldiyse zaten kayıt olmuş
+            'register'    => true,
             'profile'     => $user->entrepreneurProfile !== null,
             'goals'       => $user->goals->count() >= 1,
             'interests'   => $user->interests->count() >= 1,
@@ -61,6 +66,28 @@ class ProfileController extends Controller
             'next_step'        => $is_complete ? null : collect($steps)->filter(fn($v) => !$v)->keys()->first(),
         ]);
     }
+    // =============================================
+    // KATEGORİ SEÇ (Entrepreneur tipi)
+    // POST /api/profile/category
+    // =============================================
+    public function setCategory(Request $request)
+    {
+        $user = auth('api')->user();
+
+        $request->validate([
+            'category' => 'required|string|in:bireysel,kurumsal,diger',
+        ]);
+
+        if ($user->entrepreneurProfile) {
+            $user->entrepreneurProfile->update(['category' => $request->category]);
+        } else {
+            $user->entrepreneurProfile()->create([
+                'category' => $request->category,
+            ]);
+        }
+
+        return response()->json(['message' => 'Kategori seçildi']);
+    }
 
     // =============================================
     // PROFİL OLUŞTUR (Kayıt sonrası ilk adım)
@@ -70,32 +97,43 @@ class ProfileController extends Controller
     {
         $user = auth('api')->user();
 
-        // Zaten profili varsa hata döndür
-        if ($user->entrepreneurProfile) {
-            return response()->json([
-                'message' => 'Profiliniz zaten mevcut',
-            ], 409);
+        $request->validate([
+            'name'              => 'required|string|max:100',
+            'surname'           => 'required|string|max:100',
+            'profile_image_url' => 'nullable|string',
+            'about_me'          => 'nullable|string|max:1000',
+            'birth_date'        => 'nullable|date|before:today',
+        ]);
+
+        $user->update([
+            'name'    => $request->name,
+            'surname' => $request->surname,
+        ]);
+
+        $profile = $user->entrepreneurProfile;
+
+        if ($profile) {
+            $profile->update([
+                'profile_image_url' => $request->profile_image_url,
+                'about_me'          => $request->about_me,
+                'birth_date'        => $request->birth_date,
+            ]);
+        } else {
+            $profile = $user->entrepreneurProfile()->create([
+                'category'          => $user->entrepreneurProfile?->category ?? 'bireysel',
+                'profile_image_url' => $request->profile_image_url,
+                'about_me'          => $request->about_me,
+                'birth_date'        => $request->birth_date,
+            ]);
         }
 
-        // Veri doğrulama
-        $request->validate([
-            'category'          => 'required|string|in:bireysel,kurumsal,diger',
-            'profile_image_url' => 'nullable|string',
-            'birth_date'        => 'nullable|date|before:today',
-            'about_me'          => 'nullable|string|max:1000',
-        ]);
-
-        // Profil oluştur
-        $profile = $user->entrepreneurProfile()->create([
-            'category'          => $request->category,
-            'profile_image_url' => $request->profile_image_url,
-            'birth_date'        => $request->birth_date,
-            'about_me'          => $request->about_me,
-        ]);
+        if ($user->email) {
+            Mail::to($user->email)->send(new WelcomeMail($user));
+        }
 
         return response()->json([
-            'message' => 'Profil oluşturuldu',
-            'profile' => $profile,
+            'message' => 'Profil tamamlandı',
+            'user'    => $user->fresh()->load('entrepreneurProfile'),
         ], 201);
     }
 

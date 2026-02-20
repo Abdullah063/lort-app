@@ -13,6 +13,11 @@ return [
     | a conventional file to locate the various service credentials.
     |
     */
+    'netgsm' => [
+        'username' => env('NETGSM_USERNAME'),
+        'password' => env('NETGSM_PASSWORD'),
+        'sender'   => env('NETGSM_SENDER'),
+    ],
 
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),

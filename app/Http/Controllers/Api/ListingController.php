@@ -36,7 +36,7 @@ class ListingController extends Controller
     {
         $user = auth('api')->user();
 
-        // ✅ Paket limiti kontrolü
+        //  Paket limiti kontrolü
         $limitCheck = LimitService::check($user->id, 'listing_limit');
 
         if (!$limitCheck['allowed']) {

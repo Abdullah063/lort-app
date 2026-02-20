@@ -110,4 +110,7 @@ class NotificationController extends Controller
             'message' => 'Bildirim silindi',
         ]);
     }
-}
+
+
+    
+} 

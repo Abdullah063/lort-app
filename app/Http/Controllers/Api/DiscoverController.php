@@ -34,7 +34,7 @@ class DiscoverController extends Controller
                         ->limit(10)
                         ->get();
 
-        // Kalan hakları da frontend'e gönder
+        
         return response()->json([
             'profiles'  => $profiles,
             'count'     => $profiles->count(),
@@ -74,7 +74,7 @@ class DiscoverController extends Controller
             ], 409);
         }
 
-        // ✅ Paket limiti kontrolü
+        // Paket limiti kontrolü
         if (in_array($request->type, ['like', 'super_like'])) {
             $limitCode = $request->type === 'super_like' ? 'daily_super_like' : 'daily_like';
             $limitCheck = LimitService::check($user->id, $limitCode);
@@ -165,7 +165,7 @@ class DiscoverController extends Controller
             'match_id' => $match->id,
         ]);
 
-        // ✅ Her iki tarafa da eşleşme bildirimi gönder
+        //  Her iki tarafa da eşleşme bildirimi gönder
         $user1 = User::find($userId);
         $user2 = User::find($swipedId);
 
@@ -188,7 +188,7 @@ class DiscoverController extends Controller
     {
         $user = auth('api')->user();
 
-        // ✅ Premium özellik kontrolü
+        //  Premium özellik kontrolü
         $limitCheck = LimitService::check($user->id, 'see_who_liked');
 
         if (!$limitCheck['allowed']) {

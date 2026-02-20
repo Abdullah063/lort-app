@@ -7,17 +7,7 @@ use Illuminate\Support\Collection;
 
 class TranslationService
 {
-    /**
-     * Tek bir kaydı çevir
-     *
-     * Kullanım:
-     *   TranslationService::translate('goals', $goal, ['name', 'description']);
-     *
-     * @param string $tableName  Tablo adı (goals, interests, package_definitions vs.)
-     * @param mixed  $model      Eloquent model
-     * @param array  $fields     Çevrilecek alanlar
-     * @return mixed             Çevrilmiş model
-     */
+    
     public static function translate(string $tableName, $model, array $fields)
     {
         $lang = app()->getLocale();
@@ -27,7 +17,6 @@ class TranslationService
             return $model;
         }
 
-        // Çevirileri toplu çek (tek sorgu)
         $translations = Translation::where('table_name', $tableName)
             ->where('record_id', $model->id)
             ->where('language_code', $lang)

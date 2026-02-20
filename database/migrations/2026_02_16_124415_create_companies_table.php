@@ -16,12 +16,12 @@ return new class extends Migration
             $table->foreignId('user_id')->unique()->constrained('users')->cascadeOnDelete();
             $table->string('business_name', 200);
             $table->string('position', 100)->nullable();
-            $table->string('sector', 100)->nullable();       // finans, danışmanlık vb.
-            $table->string('country', 100)->nullable();       // Türkiye, Fransa vb.
+            $table->string('sector', 100)->nullable();       
+            $table->string('country', 100)->nullable();      
             $table->string('city', 100)->nullable();
             $table->text('address')->nullable();
-            $table->decimal('latitude', 10, 8)->nullable();   // harita için enlem
-            $table->decimal('longitude', 11, 8)->nullable();  // harita için boylam
+            $table->decimal('latitude', 10, 8)->nullable();   
+            $table->decimal('longitude', 11, 8)->nullable();  
             $table->timestamps();
         });
     }
