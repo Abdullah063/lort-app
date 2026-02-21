@@ -185,7 +185,6 @@ class ProfileController extends Controller
             'about_me'          => 'nullable|string|max:1000',
         ]);
 
-        // Güncelle (sadece gönderilen alanları günceller)
         $profile->update($request->only([
             'category',
             'profile_image_url',

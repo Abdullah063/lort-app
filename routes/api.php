@@ -12,6 +12,7 @@
     use App\Http\Controllers\Api\PackageLimitController as AdminPackageLimitController;
     use App\Http\Controllers\Api\UserController as AdminUserController;
     use App\Http\Controllers\Api\MembershipController as AdminMembershipController;
+    use App\Http\Controllers\Api\AdminRecommendationController; // for admin ilerde düzenleeyceğim inşallahhhh
     use Illuminate\Support\Facades\Route;
     use App\Http\Controllers\Auth\AuthController;
     use App\Http\Controllers\Api\ProfileController;
@@ -160,6 +161,11 @@
                         Route::get('/{userId}/membership', [AdminMembershipController::class, 'show']);
                         Route::put('/{userId}/membership', [AdminMembershipController::class, 'update']);
                         Route::get('/{userId}/membership-history', [AdminMembershipController::class, 'history']);
+                    });
+                    // Öneri Maili
+                    Route::prefix('recommendation')->group(function () {
+                        Route::post('/send/{user}', [AdminRecommendationController::class, 'sendToUser']);
+                        Route::post('/send-bulk', [AdminRecommendationController::class, 'sendBulk']);
                     });
                 });
         });

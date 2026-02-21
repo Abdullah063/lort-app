@@ -50,4 +50,8 @@ return [
         'client_id' => env('APPLE_CLIENT_ID'),
     ],
 
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+    ],
+
 ];
