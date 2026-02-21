@@ -53,5 +53,8 @@ return [
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY'),
     ],
+    'recommendation' => [
+        'api_key' => env('RECOMMENDATION_API_KEY'),
+    ],
 
 ];

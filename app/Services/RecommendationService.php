@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Cache;
 
 class RecommendationService
 {
-    private static string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+    private static string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
     /**
      * Kullanıcı bilgilerine göre öneri metni üret
@@ -30,6 +30,10 @@ class RecommendationService
         ]);
 
         if (!$response->successful()) {
+            \Log::error('Gemini API error', [
+                'status' => $response->status(),
+                'body'   => $response->json(),
+            ]);
             return null;
         }
 

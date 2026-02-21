@@ -17,6 +17,11 @@
     use App\Http\Controllers\Auth\AuthController;
     use App\Http\Controllers\Api\ProfileController;
 
+    use App\Http\Controllers\Api\RecommendationApiController;
+
+
+
+
     // =============================================
     // HERKESE AÇIK
     // =============================================
@@ -27,9 +32,16 @@
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
         Route::post('/reset-password', [AuthController::class, 'resetPassword']);
         Route::post('/init', [AuthController::class, 'init']);
-        
-        
     });
+
+
+    Route::prefix('v1/recommendation')
+        ->middleware('api_key')
+        ->group(function () {
+            Route::post('/generate', [RecommendationApiController::class, 'generate']);
+            Route::post('/send', [RecommendationApiController::class, 'send']);
+        });
+
 
     // =============================================
     // GİRİŞ YAPMIŞ KULLANICI
@@ -121,6 +133,9 @@
                 Route::put('/{id}/read', [NotificationController::class, 'markAsRead']);
                 Route::delete('/{id}', [NotificationController::class, 'destroy']);
             });
+
+
+
 
             // =============================================
             // ADMIN 
