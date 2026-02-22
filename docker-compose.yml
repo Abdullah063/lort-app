@@ -38,8 +38,8 @@ services:
     environment:
       MYSQL_DATABASE: lord_db
       MYSQL_USER: lord_user
-      MYSQL_PASSWORD: UqES061~j4U.Ck6!
-      MYSQL_ROOT_PASSWORD: RootSifre123!
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - lord_mysql_data:/var/lib/mysql
     networks:
