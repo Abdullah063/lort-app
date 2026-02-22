@@ -51,7 +51,11 @@ return [
     ],
 
     'gemini' => [
-        'api_key' => env('GEMINI_API_KEY'),
+        'api_key'  => env('GEMINI_API_KEY'),
+        'api_keys' => array_filter([
+            env('GEMINI_API_KEY'),
+            env('GEMINI_API_KEY_2'),
+        ]),
     ],
     'recommendation' => [
         'api_key' => env('RECOMMENDATION_API_KEY'),

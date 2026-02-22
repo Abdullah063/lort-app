@@ -7,17 +7,26 @@ use Illuminate\Support\Facades\Cache;
 
 class RecommendationService
 {
-    private static string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+    private static string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
 
-    /**
-     * Kullanıcı bilgilerine göre öneri metni üret
-     */
+    private static function getApiKey(): string
+    {
+        $keys = config('services.gemini.api_keys');
+
+        if (empty($keys)) {
+            return config('services.gemini.api_key');
+        }
+
+        $index = (int) \Illuminate\Support\Facades\Cache::increment('gemini_key_index');
+        return $keys[$index % count($keys)];
+    }
+
     public static function generate(array $profile, ?string $lang = null): ?string
     {
         $lang = $lang ?? app()->getLocale();
         $prompt = self::buildPrompt($profile, $lang);
 
-        $response = Http::post(self::$baseUrl . '?key=' . config('services.gemini.api_key'), [
+        $response = Http::post(self::$baseUrl . '?key=' . self::getApiKey(), [
             'contents' => [
                 [
                     'parts' => [['text' => $prompt]]
@@ -40,10 +49,6 @@ class RecommendationService
         return $response->json('candidates.0.content.parts.0.text');
     }
 
-    /**
-     * Öneriyi cache'li döndür (aynı profil için tekrar API'ye gitmesin)
-     * Cache süresi: 24 saat, dil bazlı cache
-     */
     public static function getForUser(int $userId, array $profile, ?string $lang = null): ?string
     {
         $lang = $lang ?? app()->getLocale();
@@ -54,17 +59,79 @@ class RecommendationService
         });
     }
 
-    /**
-     * Kullanıcı cache'ini temizle (profil güncellenince çağır)
-     */
     public static function clearCache(int $userId): void
     {
         Cache::forget("recommendation:user:{$userId}");
     }
 
     /**
-     * Prompt oluştur
+     * Web sitesinin içeriğini detaylı çek ve temizle
      */
+    private static function fetchWebsiteContent(string $url): string
+    {
+        // URL'ye protokol ekle
+        if (!preg_match('/^https?:\/\//', $url)) {
+            $url = 'https://' . $url;
+        }
+
+        try {
+            $html = Http::timeout(10)
+                ->withHeaders(['User-Agent' => 'Mozilla/5.0 (compatible; LortApp/1.0)'])
+                ->get($url)
+                ->body();
+
+            $result = '';
+
+            // Title çek
+            if (preg_match('/<title[^>]*>(.*?)<\/title>/is', $html, $m)) {
+                $result .= 'Site Başlığı: ' . trim(html_entity_decode($m[1])) . "\n";
+            }
+
+            // Meta description çek
+            if (preg_match('/<meta[^>]*name=["\']description["\'][^>]*content=["\'](.*?)["\']/is', $html, $m)) {
+                $result .= 'Açıklama: ' . trim(html_entity_decode($m[1])) . "\n";
+            }
+
+            // Meta keywords çek
+            if (preg_match('/<meta[^>]*name=["\']keywords["\'][^>]*content=["\'](.*?)["\']/is', $html, $m)) {
+                $result .= 'Anahtar Kelimeler: ' . trim(html_entity_decode($m[1])) . "\n";
+            }
+
+            // H1, H2, H3 başlıkları çek
+            $headings = [];
+            if (preg_match_all('/<h[1-3][^>]*>(.*?)<\/h[1-3]>/is', $html, $matches)) {
+                foreach ($matches[1] as $h) {
+                    $clean = trim(strip_tags($h));
+                    if (!empty($clean) && mb_strlen($clean) > 2) {
+                        $headings[] = $clean;
+                    }
+                }
+            }
+            if (!empty($headings)) {
+                $result .= 'Öne Çıkan Başlıklar: ' . implode(' | ', array_slice($headings, 0, 10)) . "\n";
+            }
+
+            // Ana içerik - script, style, nav, footer, header kaldır
+            $content = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $html);
+            $content = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $content);
+            $content = preg_replace('/<nav\b[^>]*>(.*?)<\/nav>/is', '', $content);
+            $content = preg_replace('/<footer\b[^>]*>(.*?)<\/footer>/is', '', $content);
+            $content = preg_replace('/<header\b[^>]*>(.*?)<\/header>/is', '', $content);
+            $content = strip_tags($content);
+            $content = preg_replace('/\s+/', ' ', $content);
+            $content = trim($content);
+
+            if (!empty($content)) {
+                $result .= 'Site İçeriği: ' . mb_substr($content, 0, 3000);
+            }
+
+            return $result;
+        } catch (\Exception $e) {
+            \Log::warning('Website fetch failed: ' . $url, ['error' => $e->getMessage()]);
+            return '';
+        }
+    }
+
     private static function buildPrompt(array $profile, string $lang): string
     {
         $sector = $profile['sector'] ?? '';
@@ -82,7 +149,24 @@ class RecommendationService
             $interests = is_array($profile['interests']) ? implode(', ', $profile['interests']) : $profile['interests'];
         }
 
+        $website = $profile['website'] ?? '';
         $langName = self::getLanguageName($lang);
+
+        $websiteSection = '';
+        $websiteInstruction = '';
+
+        if (!empty($website)) {
+            $websiteContent = self::fetchWebsiteContent($website);
+
+            $websiteSection = "\n- Web Sitesi: {$website}";
+
+            if (!empty($websiteContent)) {
+                $websiteSection .= "\n- Web Sitesi İçeriği: {$websiteContent}";
+                $websiteInstruction = "0. WEB SİTESİ ANALİZİ: Kullanıcının web sitesini ({$website}) analiz ettin. Site içeriğine dayanarak şirketin ne yaptığını özetle ve networking önerilerini buna göre şekillendir. Siteyle ilgili kısa bir pozitif yorum yap.\n";
+            } else {
+                $websiteInstruction = "0. WEB SİTESİ YORUMU: Kullanıcının web sitesi ({$website}) var. URL'den ve diğer bilgilerden yola çıkarak kısa bir yorum yap.\n";
+            }
+        }
 
         return <<<PROMPT
 Sen Lord App'in akıllı iş asistanısın. Lord App, girişimcileri ve iş insanlarını Tinder tarzı swipe ile eşleştiren bir iş networking platformu.
@@ -95,10 +179,10 @@ Kullanıcının profiline bakarak ONA ÖZEL, SOMUT ve AKSİYON ALINABİLİR öne
 - Sektör: {$sector}
 - Şehir: {$city}
 - Hedefler: {$goals}
-- İlgi Alanları: {$interests}
+- İlgi Alanları: {$interests}{$websiteSection}
 
 ## Mesajda şunları yap:
-1. BAĞLANTI ÖNERİSİ: Hedeflerine göre platformda hangi tür kişileri swipe etmesi gerektiğini söyle (örn: "İhracatçı arıyorsan, gıda sektöründeki profillere göz at")
+{$websiteInstruction}1. BAĞLANTI ÖNERİSİ: Hedeflerine göre platformda hangi tür kişileri swipe etmesi gerektiğini söyle (örn: "İhracatçı arıyorsan, gıda sektöründeki profillere göz at")
 2. PROFİL İPUCU: Profilinde eksik veya geliştirebileceği 1 somut şey söyle (örn: "Şirket açıklamana ihracat deneyimini eklersen daha çok eşleşme alırsın")
 3. HAFTALIK HEDEF: Bu hafta platformda yapabileceği 1 küçük aksiyon ver (örn: "Bu hafta 10 yeni profile bak ve en az 5'ini beğen")
 
@@ -113,9 +197,6 @@ Kullanıcının profiline bakarak ONA ÖZEL, SOMUT ve AKSİYON ALINABİLİR öne
 PROMPT;
     }
 
-    /**
-     * Dil kodundan dil adı döndür
-     */
     private static function getLanguageName(string $lang): string
     {
         return match ($lang) {
