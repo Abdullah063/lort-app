@@ -327,13 +327,13 @@ class AuthController extends Controller
             'company'   => $user->company !== null,
         ];
 
-        $nextStep = collect($steps)->filter(fn($v) => !$v)->keys()->first();
+        $incompletedSteps = collect($steps)->filter(fn($v) => !$v)->keys()->values();
 
         return response()->json([
-            'message'   => 'Giriş başarılı',
-            'user'      => $user,
-            'token'     => $this->tokenResponse($token),
-            'next_step' => $nextStep, // null ise profil tamamlanmış
+            'message'          => 'Giriş başarılı',
+            'user'             => $user,
+            'token'            => $this->tokenResponse($token),
+            'incomplete_steps' => $incompletedSteps, // [] ise profil tamamlanmış
         ]);
     }
 

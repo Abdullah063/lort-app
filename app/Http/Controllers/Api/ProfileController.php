@@ -47,7 +47,7 @@ class ProfileController extends Controller
 
         $steps = [
             'register'  => true,
-            'password'  => !is_null($user->password), 
+            'password'  => !is_null($user->password),
             'profile'   => $user->entrepreneurProfile !== null,
             'goals'     => $user->goals->count() >= 1,
             'interests' => $user->interests->count() >= 1,
@@ -57,6 +57,7 @@ class ProfileController extends Controller
         $completed = collect($steps)->filter()->count();
         $total = count($steps);
         $is_complete = $completed === $total;
+        $incompleteSteps = collect($steps)->filter(fn($v) => !$v)->keys()->values();
 
         return response()->json([
             'is_complete'      => $is_complete,
@@ -64,7 +65,7 @@ class ProfileController extends Controller
             'total_steps'      => $total,
             'percentage'       => round(($completed / $total) * 100),
             'steps'            => $steps,
-            'next_step'        => $is_complete ? null : collect($steps)->filter(fn($v) => !$v)->keys()->first(),
+            'incomplete_steps' => $incompleteSteps,
         ]);
     }
     // =============================================
