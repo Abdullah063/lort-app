@@ -127,10 +127,11 @@ class RecommendationApiController extends Controller
         SendRecommendationJob::dispatch($profile, $request->email, $request->name, $lang);
 
         $msg = match ($lang) {
+            'tr' => "{$request->name} adresine öneri maili kısa süre içinde gönderilecek.",
             'en' => "Recommendation email will be sent to {$request->name} shortly.",
             'ar' => ".سيتم إرسال بريد التوصية إلى {$request->name} قريبا",
             'de' => "Empfehlungs-E-Mail wird in Kürze an {$request->name} gesendet.",
-            default => "{$request->name} adresine öneri maili kısa süre içinde gönderilecek.",
+            default => "Recommendation email will be sent to {$request->name} shortly.",
         };
 
         return response()->json([

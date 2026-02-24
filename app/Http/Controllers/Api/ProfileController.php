@@ -46,11 +46,12 @@ class ProfileController extends Controller
         $user->load(['entrepreneurProfile', 'company', 'goals', 'interests']);
 
         $steps = [
-            'register'    => true,
-            'profile'     => $user->entrepreneurProfile !== null,
-            'goals'       => $user->goals->count() >= 1,
-            'interests'   => $user->interests->count() >= 1,
-            'company'     => $user->company !== null,
+            'register'  => true,
+            'password'  => !is_null($user->password), 
+            'profile'   => $user->entrepreneurProfile !== null,
+            'goals'     => $user->goals->count() >= 1,
+            'interests' => $user->interests->count() >= 1,
+            'company'   => $user->company !== null,
         ];
 
         $completed = collect($steps)->filter()->count();
@@ -127,8 +128,9 @@ class ProfileController extends Controller
             ]);
         }
 
-        if ($user->email) {
+        if ($user->email && !$profile->welcome_mail_sent) {
             Mail::to($user->email)->send(new WelcomeMail($user));
+            $profile->update(['welcome_mail_sent' => true]);
         }
 
         return response()->json([

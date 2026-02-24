@@ -36,9 +36,9 @@ services:
     container_name: lord_db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: lord_db
-      MYSQL_USER: lord_user
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - lord_mysql_data:/var/lib/mysql

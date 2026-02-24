@@ -22,7 +22,9 @@ php artisan view:cache
 php artisan migrate --force
 
 # Queue worker arka planda başlat
-php artisan queue:work --tries=3 --timeout=90 &
+php artisan queue:work --tries=3 --timeout=240 &
+php artisan queue:work --tries=3 --timeout=240&
+php artisan queue:work --tries=3 --timeout=2400 &
 
 # PHP-FPM başlat
 php-fpm

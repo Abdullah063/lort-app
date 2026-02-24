@@ -62,7 +62,7 @@ class AuthController extends Controller
 
         // Doğrulama kodu gönder (dd)
         EmailVerificationCode::where('user_id', $user->id)->delete();
-        $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $code = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
         EmailVerificationCode::create([
             'user_id'    => $user->id,
             'code'       => $code,
@@ -82,10 +82,75 @@ class AuthController extends Controller
     public function init(Request $request)
     {
         $request->validate([
-            'email' => 'required_without:phone|nullable|email|unique:users,email',
-            'phone' => 'required_without:email|nullable|string|max:20|unique:users,phone',
+            'email' => 'required_without:phone|nullable|email',
+            'phone' => 'required_without:email|nullable|string|max:20',
         ]);
 
+        // ── EMAIL ile gelen kullanıcı ──────────────────────────
+        if ($request->email) {
+            $existing = User::where('email', $request->email)->first();
+
+            if ($existing) {
+                // Şifresi var → login ekranına yönlendir
+                if ($existing->password) {
+                    return response()->json([
+                        'message' => 'Lütfen şifrenizle giriş yapın',
+                        'status'  => 'login_required',
+                    ], 409);
+                }
+
+                // Şifresi yok → yarım kalmış, kod gönder
+                EmailVerificationCode::where('user_id', $existing->id)->delete();
+                $code = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+                EmailVerificationCode::create([
+                    'user_id'    => $existing->id,
+                    'code'       => $code,
+                    'expires_at' => now()->addMinutes(5),
+                ]);
+                Mail::to($existing->email)->send(new VerificationCodeMail($code));
+
+                $token = auth('api')->login($existing);
+
+                return response()->json([
+                    'message' => 'Doğrulama kodu gönderildi',
+                    'token'   => $this->tokenResponse($token),
+                ]);
+            }
+        }
+
+        // ── TELEFON ile gelen kullanıcı ───────────────────────
+        if ($request->phone) {
+            $existing = User::where('phone', $request->phone)->first();
+
+            if ($existing) {
+                // Şifresi var → login ekranına yönlendir
+                if ($existing->password) {
+                    return response()->json([
+                        'message' => 'Lütfen şifrenizle giriş yapın',
+                        'status'  => 'login_required',
+                    ], 409);
+                }
+
+                // Şifresi yok → yarım kalmış, kod gönder
+                SmsVerificationCode::where('user_id', $existing->id)->delete();
+                $code = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+                SmsVerificationCode::create([
+                    'user_id'    => $existing->id,
+                    'code'       => $code,
+                    'expires_at' => now()->addMinutes(5),
+                ]);
+                SmsService::send($existing->phone, "Doğrulama kodunuz: {$code}");
+
+                $token = auth('api')->login($existing);
+
+                return response()->json([
+                    'message' => 'Doğrulama kodu gönderildi',
+                    'token'   => $this->tokenResponse($token),
+                ]);
+            }
+        }
+
+        // ── YENİ kullanıcı oluştur ────────────────────────────
         $user = User::create([
             'name'    => 'Geçici',
             'surname' => 'Kullanıcı',
@@ -95,7 +160,6 @@ class AuthController extends Controller
 
         $this->assignFreePackage($user);
 
-        // Email ile geldiyse mail kodu gönder
         if ($request->email) {
             $code = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
             EmailVerificationCode::create([
@@ -106,7 +170,6 @@ class AuthController extends Controller
             Mail::to($user->email)->send(new VerificationCodeMail($code));
         }
 
-        // Telefon ile geldiyse SMS gönder
         if ($request->phone) {
             $code = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
             SmsVerificationCode::create([
@@ -134,10 +197,10 @@ class AuthController extends Controller
         $user->update(['password' => $request->password]);
 
         return response()->json(['message' => 'Şifre belirlendi']);
-    }       
+    }
 
     // =============================================
-    // SOSYAL MEDYA İLE GİRİŞ / KAYIT
+    // SOSYAL MEDYA İLE GİRİŞ / KAYIT(teyit edilmeli...)
     // POST /api/auth/social
     // =============================================
     public function socialLogin(Request $request, SocialLoginService $socialLoginService)
@@ -242,6 +305,7 @@ class AuthController extends Controller
         }
 
         $user = auth('api')->user();
+
         if (!$user->is_active) {
             auth('api')->logout();
             return response()->json([
@@ -251,10 +315,25 @@ class AuthController extends Controller
 
         $user->update(['last_login_at' => now()]);
 
+        // Profil durumu
+        $user->load(['entrepreneurProfile', 'goals', 'interests', 'company']);
+
+        $steps = [
+            'register'  => true,
+            'password'  => !is_null($user->password),
+            'profile'   => $user->entrepreneurProfile !== null,
+            'goals'     => $user->goals->count() >= 1,
+            'interests' => $user->interests->count() >= 1,
+            'company'   => $user->company !== null,
+        ];
+
+        $nextStep = collect($steps)->filter(fn($v) => !$v)->keys()->first();
+
         return response()->json([
-            'message' => 'Giriş başarılı',
-            'user'    => $user,
-            'token'   => $this->tokenResponse($token),
+            'message'   => 'Giriş başarılı',
+            'user'      => $user,
+            'token'     => $this->tokenResponse($token),
+            'next_step' => $nextStep, // null ise profil tamamlanmış
         ]);
     }
 
