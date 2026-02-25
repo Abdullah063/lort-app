@@ -68,7 +68,27 @@ class AuthController extends Controller
             'code'       => $code,
             'expires_at' => now()->addMinutes(10),
         ]);
-        Mail::to($user->email)->send(new VerificationCodeMail($code));
+        
+        // Doğrulama kodu gönder
+        if ($user->email) {
+            EmailVerificationCode::where('user_id', $user->id)->delete();
+            $code = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+            EmailVerificationCode::create([
+                'user_id'    => $user->id,
+                'code'       => $code,
+                'expires_at' => now()->addMinutes(10),
+            ]);
+            Mail::to($user->email)->send(new VerificationCodeMail($code));
+        } elseif ($user->phone) {
+            SmsVerificationCode::where('user_id', $user->id)->delete();
+            $code = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+            SmsVerificationCode::create([
+                'user_id'    => $user->id,
+                'code'       => $code,
+                'expires_at' => now()->addMinutes(10),
+            ]);
+            SmsService::send($user->phone, "LORT doğrulama kodunuz: {$code}");
+        }
 
         // 6. Token üret
         $token = auth('api')->login($user);
@@ -291,16 +311,23 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email',
+            'email'    => 'required_without:phone|nullable|email',
+            'phone'    => 'required_without:email|nullable|string',
             'password' => 'required|string',
         ]);
 
-        $credentials = $request->only('email', 'password');
+        // Email veya phone ile giriş
+        if ($request->email) {
+            $credentials = ['email' => $request->email, 'password' => $request->password];
+        } else {
+            $credentials = ['phone' => $request->phone, 'password' => $request->password];
+        }
+
         $token = auth('api')->attempt($credentials);
 
         if (!$token) {
             return response()->json([
-                'message' => 'E-posta veya şifre hatalı',
+                'message' => 'Giriş bilgileri hatalı',
             ], 401);
         }
 
@@ -469,12 +496,14 @@ class AuthController extends Controller
     public function forgotPassword(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required_without:phone|nullable|email|exists:users,email',
+            'phone' => 'required_without:email|nullable|string|exists:users,phone',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = $request->email
+            ? User::where('email', $request->email)->first()
+            : User::where('phone', $request->phone)->first();
 
-        // Önceki kodları sil
         PasswordResetCode::where('user_id', $user->id)->delete();
 
         $code = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
@@ -485,24 +514,27 @@ class AuthController extends Controller
             'expires_at' => now()->addMinutes(5),
         ]);
 
-        Mail::to($user->email)->send(new PasswordResetMail($code));
+        if ($request->email) {
+            Mail::to($user->email)->send(new PasswordResetMail($code));
+        } else {
+            SmsService::send($user->phone, "Şifre sıfırlama kodunuz: {$code}");
+        }
 
         return response()->json(['message' => 'Şifre sıfırlama kodu gönderildi']);
     }
 
-    // =============================================
-    // ŞİFREMİ UNUTTUM - SIFIRLA
-    // POST /api/auth/reset-password
-    // =============================================
     public function resetPassword(Request $request)
     {
         $request->validate([
-            'email'                 => 'required|email|exists:users,email',
-            'code'                  => 'required|string|size:4',
-            'password'              => 'required|string|min:6|confirmed',
+            'email'    => 'required_without:phone|nullable|email|exists:users,email',
+            'phone'    => 'required_without:email|nullable|string|exists:users,phone',
+            'code'     => 'required|string|size:4',
+            'password' => 'required|string|min:6|confirmed',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = $request->email
+            ? User::where('email', $request->email)->first()
+            : User::where('phone', $request->phone)->first();
 
         $record = PasswordResetCode::where('user_id', $user->id)
             ->where('code', $request->code)
