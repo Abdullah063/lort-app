@@ -68,7 +68,7 @@ class AuthController extends Controller
             'code'       => $code,
             'expires_at' => now()->addMinutes(10),
         ]);
-        
+
         // Doğrulama kodu gönder
         if ($user->email) {
             EmailVerificationCode::where('user_id', $user->id)->delete();

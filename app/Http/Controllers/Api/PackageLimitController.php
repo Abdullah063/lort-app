@@ -124,9 +124,7 @@ class PackageLimitController extends Controller
 
         $request->validated();
 
-        $limit->update($request->only([
-            'limit_name', 'limit_value', 'period', 'is_active',
-        ]));
+        $limit->update($request->safe()->only(['limit_name', 'limit_value', 'period', 'is_active']));
 
         return response()->json([
             'message' => 'Limit güncellendi',

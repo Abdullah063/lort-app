@@ -144,7 +144,7 @@ class ProfileController extends Controller
     {
         $user = auth('api')->user();
 
-        // Kullanıcının tüm bilgilerini yükle
+
         $user->load([
             'entrepreneurProfile',
             'company',

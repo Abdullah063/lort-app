@@ -7,8 +7,7 @@ use Illuminate\Support\Facades\Cache;
 
 class RecommendationService
 {
-    private static string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
-
+     private static string $baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
     private static function getApiKey(): string
     {
         $keys = config('services.gemini.api_keys');
@@ -26,27 +25,26 @@ class RecommendationService
         $lang = $lang ?? app()->getLocale();
         $prompt = self::buildPrompt($profile, $lang);
 
-        $response = Http::post(self::$baseUrl . '?key=' . self::getApiKey(), [
-            'contents' => [
-                [
-                    'parts' => [['text' => $prompt]]
-                ]
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . config('services.openrouter.api_key'),
+        ])->post(self::$baseUrl, [
+            'model' => 'openrouter/free',
+            'messages' => [
+                ['role' => 'user', 'content' => $prompt],
             ],
-            'generationConfig' => [
-                'temperature' => 0.8,
-                'maxOutputTokens' => 2048,
-            ],
+            'temperature' => 0.8,
+            'max_tokens' => 2048,
         ]);
 
         if (!$response->successful()) {
-            \Log::error('Gemini API error', [
+            \Log::error('OpenRouter API error', [
                 'status' => $response->status(),
                 'body'   => $response->json(),
             ]);
             return null;
         }
 
-        return $response->json('candidates.0.content.parts.0.text');
+        return $response->json('choices.0.message.content');
     }
 
     public static function getForUser(int $userId, array $profile, ?string $lang = null): ?string
