@@ -3,7 +3,7 @@ set -e
 
 # MySQL'in hazır olmasını bekle
 echo "MySQL bekleniyor..."
-while ! php -r "new PDO('mysql:host=db;port=3306;dbname=lord_db', 'lord_user', getenv('DB_PASSWORD'));" 2>/dev/null; do
+while ! php -r "new PDO('mysql:host=db;port=3306;dbname=' . getenv('DB_DATABASE'), getenv('DB_USERNAME'), getenv('DB_PASSWORD'));" 2>/dev/null; do
     sleep 2
     echo "MySQL henüz hazır değil, bekleniyor..."
 done
@@ -22,9 +22,15 @@ php artisan view:cache
 php artisan migrate --force
 
 # Queue worker arka planda başlat
-php artisan queue:work --tries=3 --timeout=240 &
 php artisan queue:work --tries=3 --timeout=240&
-php artisan queue:work --tries=3 --timeout=2400 &
+php artisan queue:work --tries=3 --timeout=240&
+php artisan queue:work --tries=3 --timeout=2400&
+
+# Scheduler arka planda başlat
+while true; do
+    php artisan schedule:run >> /dev/null 2>&1
+    sleep 60
+done &
 
 # PHP-FPM başlat
 php-fpm
