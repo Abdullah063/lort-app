@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SetCategoryRequest;
+use App\Http\Requests\StoreEntrepreneurProfileRequest;
+use App\Http\Requests\UpdateProfileRequest;
+use App\Http\Requests\UpdateUserRequest;
 use App\Models\EntrepreneurProfile;
 use Illuminate\Http\Request;
 
@@ -17,7 +21,7 @@ class ProfileController extends Controller
     // KULLANICI BİLGİLERİ GÜNCELLE (isim, soyisim, telefon)
     // POST /api/profile/user-update
     // =============================================
-    public function updateUser(Request $request)
+    public function updateUser(UpdateUserRequest $request)
     {
         $user = auth('api')->user();
 
@@ -72,13 +76,11 @@ class ProfileController extends Controller
     // KATEGORİ SEÇ (Entrepreneur tipi)
     // POST /api/profile/category
     // =============================================
-    public function setCategory(Request $request)
+    public function setCategory(SetCategoryRequest $request)
     {
         $user = auth('api')->user();
 
-        $request->validate([
-            'category' => 'required|string|in:bireysel,kurumsal,diger',
-        ]);
+        $request->validated();
 
         if ($user->entrepreneurProfile) {
             $user->entrepreneurProfile->update(['category' => $request->category]);
@@ -95,17 +97,11 @@ class ProfileController extends Controller
     // PROFİL OLUŞTUR (Kayıt sonrası ilk adım)
     // POST /api/profile
     // =============================================
-    public function store(Request $request)
+    public function store(StoreEntrepreneurProfileRequest $request)
     {
         $user = auth('api')->user();
 
-        $request->validate([
-            'name'              => 'required|string|max:100',
-            'surname'           => 'required|string|max:100',
-            'profile_image_url' => 'nullable|string',
-            'about_me'          => 'nullable|string|max:1000',
-            'birth_date'        => 'nullable|date|before:today',
-        ]);
+        $request->validated();
 
         $user->update([
             'name'    => $request->name,
@@ -168,7 +164,7 @@ class ProfileController extends Controller
     // PROFİL GÜNCELLE
     // PUT /api/profile
     // =============================================
-    public function update(Request $request)
+    public function update(UpdateProfileRequest $request)
     {
         $user = auth('api')->user();
         $profile = $user->entrepreneurProfile;
@@ -181,12 +177,7 @@ class ProfileController extends Controller
         }
 
         // Veri doğrulama
-        $request->validate([
-            'category'          => 'sometimes|string|in:bireysel,kurumsal,diger',
-            'profile_image_url' => 'nullable|string',
-            'birth_date'        => 'nullable|date|before:today',
-            'about_me'          => 'nullable|string|max:1000',
-        ]);
+        $request->validated();
 
         $profile->update($request->only([
             'category',

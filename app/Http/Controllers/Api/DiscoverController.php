@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SwipeDiscoverRequest;
 use App\Models\User;
 use App\Models\Swipe;
 use App\Models\UserMatch;
@@ -49,14 +50,11 @@ class DiscoverController extends Controller
     // KAYDIRMA (LIKE / NOPE / SUPER_LIKE)
     // POST /api/discover/swipe
     // =============================================
-    public function swipe(Request $request)
+    public function swipe(SwipeDiscoverRequest $request)
     {
         $user = auth('api')->user();
 
-        $request->validate([
-            'swiped_id' => 'required|exists:users,id',
-            'type'      => 'required|string|in:like,nope,super_like',
-        ]);
+        $request->validated();
 
         if ($request->swiped_id == $user->id) {
             return response()->json([

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SendMessageRequest;
+use App\Http\Requests\StartDirectMessageRequest;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
@@ -141,7 +143,7 @@ class MessageController extends Controller
     // MESAJ GÖNDER
     // POST /api/conversations/{conversationId}/messages
     // =============================================
-    public function send(Request $request, $conversationId)
+    public function send(SendMessageRequest $request, $conversationId)
     {
         $user = auth('api')->user();
 
@@ -172,9 +174,7 @@ class MessageController extends Controller
             }
         }
 
-        $request->validate([
-            'content' => 'required|string|max:2000',
-        ]);
+        $request->validated();
 
         $message = Message::create([
             'conversation_id' => $conversationId,
@@ -209,7 +209,7 @@ class MessageController extends Controller
     // DİREKT MESAJ BAŞLAT (Eşleşmesiz - Premium)
     // POST /api/conversations/direct
     // =============================================
-    public function startDirect(Request $request)
+    public function startDirect(StartDirectMessageRequest $request)
     {
         $user = auth('api')->user();
 
@@ -225,10 +225,7 @@ class MessageController extends Controller
             ], $limitCheck['limit'] === 0 ? 403 : 429);
         }
 
-        $request->validate([
-            'target_user_id' => 'required|exists:users,id',
-            'content'        => 'required|string|max:2000',
-        ]);
+        $request->validated();
 
         // Kendine mesaj atamaz
         if ($request->target_user_id == $user->id) {

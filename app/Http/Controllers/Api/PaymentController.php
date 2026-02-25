@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StartPaymentRequest;
 use App\Mail\PackageCongratsMail;
 use App\Models\MembershipHistory;
 use App\Models\Payment;
@@ -22,18 +23,9 @@ class PaymentController extends Controller
     // ÖDEME BAŞLAT
     // POST /api/payment/start
     // =============================================
-    public function start(Request $request)
+    public function start(StartPaymentRequest $request)
     {
-        $request->validate([
-            'package_id'  => 'required|exists:package_definitions,id',
-            'period'      => 'required|in:monthly,yearly',
-            'card_number' => 'required|string|size:16',
-            'card_month'  => 'required|string|size:2',
-            'card_year'   => 'required|string|size:2',
-            'card_cvv'    => 'required|string|min:3|max:4',
-            'card_holder' => 'required|string',
-            'installment' => 'nullable|integer|min:0|max:12',
-        ]);
+        $request->validated();
 
         $user    = auth('api')->user();
         $package = PackageDefinition::findOrFail($request->package_id);

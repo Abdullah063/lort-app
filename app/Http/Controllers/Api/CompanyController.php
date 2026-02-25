@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreCompanyRequest;
+use App\Http\Requests\UpdateCompanyRequest;
 use App\Models\Company;
+use Illuminate\Contracts\Cache\Store;
 use Illuminate\Http\Request;
 
 class CompanyController extends Controller
@@ -12,7 +15,7 @@ class CompanyController extends Controller
     // ŞİRKET BİLGİLERİ OLUŞTUR
     // POST /api/company
     // =============================================
-    public function store(Request $request)
+    public function store(StoreCompanyRequest $request)
     {
         $user = auth('api')->user();
 
@@ -22,27 +25,9 @@ class CompanyController extends Controller
             ], 409);
         }
 
-        $request->validate([
-            'business_name' => 'required|string|max:200',
-            'position'      => 'nullable|string|max:100',
-            'sector'        => 'nullable|string|max:100',
-            'country'       => 'nullable|string|max:100',
-            'city'          => 'nullable|string|max:100',
-            'address'       => 'nullable|string',
-            'latitude'      => 'nullable|numeric|between:-90,90',
-            'longitude'     => 'nullable|numeric|between:-180,180',
-        ]);
+        $request->validated();
 
-        $company = $user->company()->create($request->only([
-            'business_name',
-            'position',
-            'sector',
-            'country',
-            'city',
-            'address',
-            'latitude',
-            'longitude',
-        ]));
+        $company = $user->company()->create($request->validated());
 
         return response()->json([
             'message' => 'Şirket bilgileri oluşturuldu',
@@ -74,7 +59,7 @@ class CompanyController extends Controller
     // ŞİRKET BİLGİLERİNİ GÜNCELLE
     // PUT /api/company
     // =============================================
-    public function update(Request $request)
+    public function update(UpdateCompanyRequest $request)
     {
         $user = auth('api')->user();
         $company = $user->company;
@@ -85,16 +70,7 @@ class CompanyController extends Controller
             ], 404);
         }
 
-        $validated = $request->validate([
-            'business_name' => 'sometimes|string|max:200',
-            'position'      => 'sometimes|nullable|string|max:100',
-            'sector'        => 'sometimes|nullable|string|max:100',
-            'country'       => 'sometimes|nullable|string|max:100',
-            'city'          => 'sometimes|nullable|string|max:100',
-            'address'       => 'sometimes|nullable|string',
-            'latitude'      => 'sometimes|nullable|numeric|between:-90,90',
-            'longitude'     => 'sometimes|nullable|numeric|between:-180,180',
-        ]);
+        $validated = $request->validated();
 
         $company->update($validated);
 

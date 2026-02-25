@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StorePackageRequest;
+use App\Http\Requests\UpdatePackageRequest;
 use App\Models\PackageDefinition;
 use Illuminate\Http\Request;
 
@@ -47,18 +49,9 @@ class PackageController extends Controller
     // YENİ PAKET OLUŞTUR
     // POST /api/admin/packages
     // =============================================
-    public function store(Request $request)
+    public function store(StorePackageRequest $request)
     {
-        $request->validate([
-            'name'          => 'required|string|max:50|unique:package_definitions,name',
-            'display_name'  => 'required|string|max:100',
-            'description'   => 'nullable|string',
-            'monthly_price' => 'required|numeric|min:0',
-            'yearly_price'  => 'required|numeric|min:0',
-            'currency'      => 'sometimes|string|max:10',
-            'is_active'     => 'sometimes|boolean',
-            'sort_order'    => 'sometimes|integer',
-        ]);
+        $request->validated();
 
         $package = PackageDefinition::create($request->only([
             'name', 'display_name', 'description',
@@ -76,7 +69,7 @@ class PackageController extends Controller
     // PAKET GÜNCELLE
     // PUT /api/admin/packages/{id}
     // =============================================
-    public function update(Request $request, $id)
+    public function update(UpdatePackageRequest $request, $id)
     {
         $package = PackageDefinition::find($id);
 
@@ -86,16 +79,7 @@ class PackageController extends Controller
             ], 404);
         }
 
-        $request->validate([
-            'name'          => "sometimes|string|max:50|unique:package_definitions,name,{$id}",
-            'display_name'  => 'sometimes|string|max:100',
-            'description'   => 'nullable|string',
-            'monthly_price' => 'sometimes|numeric|min:0',
-            'yearly_price'  => 'sometimes|numeric|min:0',
-            'currency'      => 'sometimes|string|max:10',
-            'is_active'     => 'sometimes|boolean',
-            'sort_order'    => 'sometimes|integer',
-        ]);
+        $request->validated();
 
         $package->update($request->only([
             'name', 'display_name', 'description',

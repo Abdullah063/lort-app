@@ -24,7 +24,7 @@ php artisan migrate --force
 # Queue worker arka planda başlat
 php artisan queue:work --tries=3 --timeout=240&
 php artisan queue:work --tries=3 --timeout=240&
-php artisan queue:work --tries=3 --timeout=2400&
+php artisan queue:work --tries=3 --timeout=240&
 
 # Scheduler arka planda başlat
 while true; do

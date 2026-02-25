@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateMembershipRequest;
 use App\Models\User;
 use App\Models\Membership;
 use App\Models\MembershipHistory;
@@ -40,7 +41,7 @@ class MembershipController extends Controller
     // KULLANICININ PAKETİNİ DEĞİŞTİR
     // PUT /api/admin/users/{userId}/membership
     // =============================================
-    public function update(Request $request, $userId)
+    public function update(UpdateMembershipRequest $request, $userId)
     {
         $user = User::find($userId);
 
@@ -50,11 +51,7 @@ class MembershipController extends Controller
             ], 404);
         }
 
-        $request->validate([
-            'package_id' => 'required|exists:package_definitions,id',
-            'reason'     => 'required|string|in:upgrade,downgrade,admin_action,refund',
-            'note'       => 'nullable|string',
-        ]);
+        $request->validated();
 
         $admin = auth('api')->user();
         $newPackage = PackageDefinition::find($request->package_id);

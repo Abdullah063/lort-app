@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SelectGoalRequest;
 use App\Models\Goal;
 use App\Services\TranslationService;
 use Illuminate\Http\Request;
@@ -29,14 +30,11 @@ class GoalController extends Controller
     // KULLANICININ HEDEFLERİNİ KAYDET/GÜNCELLE
     // POST /api/goals/select
     // =============================================
-    public function select(Request $request)
+    public function select(SelectGoalRequest $request)
     {
         $user = auth('api')->user();
 
-        $request->validate([
-            'goal_ids'   => 'required|array|min:1',
-            'goal_ids.*' => 'exists:goals,id',
-        ]);
+        $request->validated();
 
         $user->goals()->sync($request->goal_ids);
 

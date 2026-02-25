@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkStorePackageLimitRequest;
+use App\Http\Requests\StorePackageLimitRequest;
+use App\Http\Requests\UpdatePackageLimitRequest;
 use App\Models\PackageLimit;
 use App\Models\PackageDefinition;
 use Illuminate\Http\Request;
@@ -67,7 +70,7 @@ class PackageLimitController extends Controller
     // LİMİT EKLE
     // POST /api/admin/packages/{packageId}/limits
     // =============================================
-    public function store(Request $request, $packageId)
+    public function store(StorePackageLimitRequest $request, $packageId)
     {
         $package = PackageDefinition::find($packageId);
 
@@ -77,13 +80,7 @@ class PackageLimitController extends Controller
             ], 404);
         }
 
-        $request->validate([
-            'limit_code'  => 'required|string|max:50',
-            'limit_name'  => 'required|string|max:100',
-            'limit_value' => 'required|integer|min:-1',
-            'period'      => 'required|string|in:daily,weekly,monthly,total',
-            'is_active'   => 'sometimes|boolean',
-        ]);
+        $request->validated();
 
         // Aynı pakette aynı limit kodu var mı
         $exists = PackageLimit::where('package_id', $packageId)
@@ -115,7 +112,7 @@ class PackageLimitController extends Controller
     // LİMİT GÜNCELLE
     // PUT /api/admin/limits/{id}
     // =============================================
-    public function update(Request $request, $id)
+    public function update(UpdatePackageLimitRequest $request, $id)
     {
         $limit = PackageLimit::find($id);
 
@@ -125,12 +122,7 @@ class PackageLimitController extends Controller
             ], 404);
         }
 
-        $request->validate([
-            'limit_name'  => 'sometimes|string|max:100',
-            'limit_value' => 'sometimes|integer|min:-1',
-            'period'      => 'sometimes|string|in:daily,weekly,monthly,total',
-            'is_active'   => 'sometimes|boolean',
-        ]);
+        $request->validated();
 
         $limit->update($request->only([
             'limit_name', 'limit_value', 'period', 'is_active',
@@ -167,16 +159,9 @@ class PackageLimitController extends Controller
     // BİR LİMİTİ TÜM PAKETLERE TOPLU EKLE
     // POST /api/admin/limits/bulk
     // =============================================
-    public function bulkStore(Request $request)
+    public function bulkStore(BulkStorePackageLimitRequest $request)
     {
-        $request->validate([
-            'limit_code' => 'required|string|max:50',
-            'limit_name' => 'required|string|max:100',
-            'period'     => 'required|string|in:daily,weekly,monthly,total',
-            'values'     => 'required|array',
-            'values.*.package_id'  => 'required|exists:package_definitions,id',
-            'values.*.limit_value' => 'required|integer|min:-1',
-        ]);
+        $request->validated();
 
         $created = [];
 

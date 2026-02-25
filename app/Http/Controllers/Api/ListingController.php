@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreListiningRequest;
+use App\Http\Requests\UpdateListiningRequest;
 use App\Models\Listing;
 use App\Services\LimitService;
 use Illuminate\Http\Request;
@@ -32,7 +34,7 @@ class ListingController extends Controller
     // İLAN OLUŞTUR
     // POST /api/listings
     // =============================================
-    public function store(Request $request)
+    public function store(StoreListiningRequest $request)
     {
         $user = auth('api')->user();
 
@@ -47,10 +49,7 @@ class ListingController extends Controller
             ], 403);
         }
 
-        $request->validate([
-            'title'       => 'required|string|max:200',
-            'description' => 'nullable|string',
-        ]);
+        $request->validated();
 
         $listing = $user->listings()->create([
             'title'       => $request->title,
@@ -58,7 +57,7 @@ class ListingController extends Controller
             'status'      => 'active',
         ]);
 
-        // ✅ Kullanımı artır
+        // Kullanımı artır
         LimitService::increment($user->id, 'listing_limit');
 
         return response()->json([
@@ -91,7 +90,7 @@ class ListingController extends Controller
     // İLAN GÜNCELLE
     // PUT /api/listings/{id}
     // =============================================
-    public function update(Request $request, $id)
+    public function update(UpdateListiningRequest $request, $id)
     {
         $user = auth('api')->user();
         $listing = $user->listings()->find($id);
@@ -102,11 +101,7 @@ class ListingController extends Controller
             ], 404);
         }
 
-        $request->validate([
-            'title'       => 'sometimes|string|max:200',
-            'description' => 'nullable|string',
-            'status'      => 'sometimes|string|in:active,inactive',
-        ]);
+        $request->validated();
 
         $listing->update($request->only(['title', 'description', 'status']));
 

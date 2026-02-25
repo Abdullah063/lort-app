@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SelectInterestRequest;
 use App\Models\Interest;
 use App\Services\TranslationService;
 use Illuminate\Http\Request;
@@ -28,14 +29,11 @@ class InterestController extends Controller
     // KULLANICININ İLGİ ALANLARINI KAYDET/GÜNCELLE
     // POST /api/interests/select
     // =============================================
-    public function select(Request $request)
+    public function select(SelectInterestRequest $request)
     {
         $user = auth('api')->user();
 
-        $request->validate([
-            'interest_ids'   => 'required|array|min:1',
-            'interest_ids.*' => 'exists:interests,id',
-        ]);
+        $request->validated();
 
         $user->interests()->sync($request->interest_ids);
 

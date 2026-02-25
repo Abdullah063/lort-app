@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ReorderGalleryRequest;
+use App\Http\Requests\StoreGalleryRequest;
 use App\Models\PhotoGallery;
 use App\Services\LimitService;
 use Illuminate\Http\Request;
@@ -32,11 +34,11 @@ class GalleryController extends Controller
     // FOTOĞRAF YÜKLE
     // POST /api/gallery
     // =============================================
-    public function store(Request $request)
+    public function store(StoreGalleryRequest $request)
     {
         $user = auth('api')->user();
 
-        // ✅ Paket limitini kontrol et
+        // Paket limitini kontrol et
         $limitCheck = LimitService::check($user->id, 'gallery_limit');
 
         if (!$limitCheck['allowed']) {
@@ -47,9 +49,7 @@ class GalleryController extends Controller
             ], 403);
         }
 
-        $request->validate([
-            'image_url' => 'required|string',
-        ]);
+        $request->validated();
 
         $lastOrder = $user->photoGallery()->max('sort_order') ?? 0;
 
@@ -72,14 +72,11 @@ class GalleryController extends Controller
     // FOTOĞRAF SİRALAMASINI GÜNCELLE
     // POST /api/gallery/reorder
     // =============================================
-    public function reorder(Request $request)
+    public function reorder(ReorderGalleryRequest $request)
     {
         $user = auth('api')->user();
 
-        $request->validate([
-            'photo_ids'   => 'required|array',
-            'photo_ids.*' => 'exists:photo_galleries,id',
-        ]);
+        $request->validated();
 
         foreach ($request->photo_ids as $index => $photoId) {
             $user->photoGallery()

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreProfileRequest;
 use App\Jobs\SendRecommendationJob;
 use App\Mail\RecommendationMail;
 use App\Models\User;
@@ -31,8 +32,8 @@ class RecommendationApiController extends Controller
                 'position'  => $userData['position'] ?? '',
                 'sector'    => $userData['sector'] ?? '',
                 'city'      => $userData['city'] ?? '',
-                'goals'     => $userData['goals'] ?? [],
-                'interests' => $userData['interests'] ?? [],
+                'goals'     => is_string($userData['goals'] ?? '') ? json_decode($userData['goals'], true) ?? [] : ($userData['goals'] ?? []),
+                'interests' => is_string($userData['interests'] ?? '') ? json_decode($userData['interests'], true) ?? [] : ($userData['interests'] ?? []),
                 'website'   => $userData['website'] ?? '',
             ];
 
@@ -58,18 +59,9 @@ class RecommendationApiController extends Controller
         ]);
     }
 
-    public function generate(Request $request): JsonResponse
+    public function generate(StoreProfileRequest $request): JsonResponse
     {
-        $request->validate([
-            'name'      => 'required|string|max:100',
-            'company'   => 'nullable|string|max:200',
-            'position'  => 'nullable|string|max:100',
-            'sector'    => 'nullable|string|max:100',
-            'city'      => 'nullable|string|max:100',
-            'goals'     => 'nullable|array',
-            'interests' => 'nullable|array',
-            'website'   => 'nullable|url|max:500',
-        ]);
+        $request->validated();
 
         $lang = $request->header('Accept-Language', 'en');
 
@@ -98,19 +90,9 @@ class RecommendationApiController extends Controller
         ]);
     }
 
-    public function send(Request $request): JsonResponse
+    public function send(StoreProfileRequest $request): JsonResponse
     {
-        $request->validate([
-            'name'      => 'required|string|max:100',
-            'email'     => 'required|email',
-            'company'   => 'nullable|string|max:200',
-            'position'  => 'nullable|string|max:100',
-            'sector'    => 'nullable|string|max:100',
-            'city'      => 'nullable|string|max:100',
-            'goals'     => 'nullable|array',
-            'interests' => 'nullable|array',
-            'website'   => 'nullable|url|max:500',
-        ]);
+        $request->validated();
 
         $lang = $request->header('Accept-Language', 'en');
 
