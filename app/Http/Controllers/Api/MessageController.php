@@ -12,6 +12,7 @@ use App\Models\UserMatch;
 use App\Services\LimitService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use App\Events\MessageSent;
 
 class MessageController extends Controller
 {
@@ -183,6 +184,13 @@ class MessageController extends Controller
             'status'          => 'sent',
         ]);
 
+        event(new MessageSent((int) $conversationId, [
+            'id'        => $message->id,
+            'sender_id' => $user->id,
+            'content'   => $message->content,
+            'sent_at'   => $message->created_at,
+        ]));
+
         // Kullanımı artır (sadece direkt mesaj sohbetlerinde)
         if (!$conversation->match_id) {
             LimitService::increment($user->id, 'daily_message');
@@ -191,11 +199,10 @@ class MessageController extends Controller
         // Karşı tarafa bildirim gönder
         $otherUserId = $this->getOtherUserId($user, $conversation);
 
-        NotificationService::sendDirect(
+        NotificationService::send(
             $otherUserId,
             'message',
-            'Yeni Mesaj',
-            "{$user->name} size bir mesaj gönderdi"
+            ['sender_name' => $user->name]
         );
 
         return response()->json([
@@ -290,15 +297,21 @@ class MessageController extends Controller
             'status'          => 'sent',
         ]);
 
+        event(new MessageSent((int) $conversation->id, [
+            'id'        => $message->id,
+            'sender_id' => $user->id,
+            'content'   => $message->content,
+            'sent_at'   => $message->created_at,
+        ]));
+
         LimitService::increment($user->id, 'daily_message');
         LimitService::increment($user->id, 'direct_message');
 
         // Karşı tarafa bildirim
-        NotificationService::sendDirect(
+        NotificationService::send(
             $request->target_user_id,
             'message',
-            'Yeni Mesaj',
-            "{$user->name} size bir mesaj gönderdi"
+            ['sender_name' => $user->name]
         );
 
         return response()->json([

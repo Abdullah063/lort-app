@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\NotificationSent;
 use App\Models\User;
 use App\Models\NotificationTemplate;
 use App\Models\UserNotification;
@@ -57,6 +58,13 @@ class NotificationService
             'is_read'       => false,
             'email_sent'    => false,
         ]);
+        event(new NotificationSent($userId, [
+            'id'    => $notif->id,
+            'type'  => $notif->type,
+            'title' => $notif->title,
+            'body'  => $notif->body,
+        ]));
+        return $notif;
     }
     /**
      * Şablonsuz hızlı bildirim gönder

@@ -11,6 +11,7 @@ use App\Models\Conversation;
 use App\Services\LimitService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use App\Events\NotificationSent;
 
 class DiscoverController extends Controller
 {
