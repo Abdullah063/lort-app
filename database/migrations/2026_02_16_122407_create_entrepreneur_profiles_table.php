@@ -15,6 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->unique()->constrained('users')->cascadeOnDelete();
             $table->string('category', 50);
+            //dil-> mail sistemi için referans alacağım 
+            $table->string('preferred_language', 5)->default('en');
+            $table->foreign('preferred_language')
+                ->references('code')
+                ->on('supported_languages');
             $table->string('profile_image_url')->nullable();
             $table->date('birth_date')->nullable();
             $table->text('about_me')->nullable();
