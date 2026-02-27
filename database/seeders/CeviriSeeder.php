@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Category;
 use Illuminate\Database\Seeder;
 use App\Models\Translation;
 use App\Models\Goal;
@@ -171,6 +172,33 @@ class CeviriSeeder extends Seeder
             }
         }
 
-        $this->command->info('Çeviriler eklendi (EN + AR)');
+        // =============================================
+        // KATEGORİLER
+        // =============================================
+        $categories = Category::all();
+
+        $catTranslations = [
+            'individual' => ['tr' => 'Bireysel',  'en' => 'Individual', 'ar' => 'فردي'],
+            'corporate'  => ['tr' => 'Kurumsal',  'en' => 'Corporate',  'ar' => 'شركات'],
+            'other'      => ['tr' => 'Diğer',     'en' => 'Other',      'ar' => 'أخرى'],
+        ];
+
+        foreach ($categories as $cat) {
+            if (isset($catTranslations[$cat->code])) {
+                foreach ($catTranslations[$cat->code] as $langCode => $value) {
+                    Translation::updateOrCreate([
+                        'table_name'    => 'categories',
+                        'record_id'     => $cat->id,
+                        'field_name'    => 'name',
+                        'language_code' => $langCode,
+                    ], [
+                        'value' => $value,
+                    ]);
+                }
+            }
+        }
+
+        $this->command->info('Çeviriler eklendi (EN + TR + AR)');
+
     }
 }

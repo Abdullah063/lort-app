@@ -10,6 +10,8 @@ class UserNotification extends Model
     protected $fillable = [
         'user_id',
         'type',
+        'template_code',
+        'variables',
         'title',
         'body',
         'is_read',
@@ -21,9 +23,11 @@ class UserNotification extends Model
         return [
             'is_read' => 'boolean',
             'email_sent' => 'boolean',
+            'variables'  => 'array',
         ];
     }
-    public function user(){
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 }

@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             RolVeIzinSeeder::class,          // 1. Roller ve izinler
             PaketSeeder::class,              // 2. Paket tanımları, özellikler, limitler
             DilSeeder::class,                // 3. Desteklenen diller
+            CategorySeeder::class,
             HedefVeIlgiAlaniSeeder::class,   // 4. Hedefler ve ilgi alanları
             BildirimSablonuSeeder::class,    // 5. Bildirim şablonları
             CeviriSeeder::class, 

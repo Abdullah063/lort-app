@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\GoalController;
 use App\Http\Controllers\Api\InterestController;
@@ -23,11 +24,11 @@ use App\Http\Controllers\Auth\AuthController;
 Route::get('/test-payment-page', function () {
     $user = \App\Models\User::find(5); // test kullanıcısı
     auth('api')->login($user);
-    
+
     $package = \App\Models\PackageDefinition::find(3); // silver
-    $amount = (int)($package->monthly_price * 100); 
+    $amount = (int)($package->monthly_price * 100);
     $orderId = 'ORD' . time() . 'TEST';
-    
+
     $membership = $user->memberships()->create([
         'package_id' => $package->id,
         'starts_at'  => now(),
@@ -109,11 +110,18 @@ Route::middleware('auth:api')
         Route::prefix('profile')->group(function () {
             Route::get('/status', [ProfileController::class, 'status']);
             Route::post('/user-update', [ProfileController::class, 'updateUser']);
+            Route::put('/language', [ProfileController::class, 'updateLanguage']);
             Route::post('/category', [ProfileController::class, 'setCategory']);
             Route::post('/', [ProfileController::class, 'store']);
             Route::get('/', [ProfileController::class, 'show']);
             Route::put('/', [ProfileController::class, 'update']);
         });
+
+        //kategoriler
+        Route::prefix('categories')->group(function () {
+            Route::get('/', [CategoryController::class, 'index']);
+        });
+
 
         // Hedefler
         Route::prefix('goals')->group(function () {

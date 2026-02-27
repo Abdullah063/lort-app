@@ -23,7 +23,6 @@ class RecommendationApiController extends Controller
             'users.*.website'  => 'nullable|url|max:500',
         ]);
 
-        $lang = $request->header('Accept-Language', 'en');
         $delay = 60;
 
         foreach ($request->users as $userData) {
@@ -37,25 +36,20 @@ class RecommendationApiController extends Controller
                 'website'   => $userData['website'] ?? '',
             ];
 
+            // Kullanıcının kayıtlı dilini bul
+            $user = User::where('email', $userData['email'])->first();
+            $lang = $user?->entrepreneurProfile?->preferred_language ?? 'en';
+
             SendRecommendationJob::dispatch($profile, $userData['email'], $userData['name'], $lang)
                 ->delay(now()->addSeconds($delay));
 
             $delay += 10;
         }
 
-        $count = count($request->users);
-
-        $msg = match ($lang) {
-            'en' => "{$count} recommendation emails queued.",
-            'ar' => ".تم وضع {$count} رسائل توصية في قائمة الانتظار",
-            'de' => "{$count} Empfehlungs-E-Mails in Warteschlange.",
-            default => "{$count} öneri maili kuyruğa eklendi.",
-        };
-
         return response()->json([
             'success' => true,
-            'message' => $msg,
-            'count'   => $count,
+            'message' => 'Öneri mailleri kuyruğa eklendi.',
+            'count'   => count($request->users),
         ]);
     }
 
@@ -63,7 +57,7 @@ class RecommendationApiController extends Controller
     {
         $request->validated();
 
-        $lang = $request->header('Accept-Language', 'en');
+        $lang = app()->getLocale();
 
         $profile = [
             'company'   => $request->company ?? '',
@@ -80,7 +74,7 @@ class RecommendationApiController extends Controller
         if (!$recommendation) {
             return response()->json([
                 'success' => false,
-                'message' => 'Öneri oluşturulamadı. Lütfen daha sonra tekrar deneyin.',
+                'message' => 'Öneri oluşturulamadı.',
             ], 503);
         }
 
@@ -94,7 +88,9 @@ class RecommendationApiController extends Controller
     {
         $request->validated();
 
-        $lang = $request->header('Accept-Language', 'en');
+        // Kullanıcının kayıtlı dilini bul
+        $user = User::where('email', $request->email)->first();
+        $lang = $user?->entrepreneurProfile?->preferred_language ?? 'en';
 
         $profile = [
             'company'   => $request->company ?? '',
@@ -108,17 +104,9 @@ class RecommendationApiController extends Controller
 
         SendRecommendationJob::dispatch($profile, $request->email, $request->name, $lang);
 
-        $msg = match ($lang) {
-            'tr' => "{$request->name} adresine öneri maili kısa süre içinde gönderilecek.",
-            'en' => "Recommendation email will be sent to {$request->name} shortly.",
-            'ar' => ".سيتم إرسال بريد التوصية إلى {$request->name} قريبا",
-            'de' => "Empfehlungs-E-Mail wird in Kürze an {$request->name} gesendet.",
-            default => "Recommendation email will be sent to {$request->name} shortly.",
-        };
-
         return response()->json([
             'success' => true,
-            'message' => $msg,
+            'message' => 'Öneri maili kuyruğa eklendi.',
         ]);
     }
 }

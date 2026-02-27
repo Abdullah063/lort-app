@@ -23,19 +23,19 @@ class DiscoverController extends Controller
         $user = auth('api')->user();
 
         $swipedIds = Swipe::where('swiper_id', $user->id)
-                          ->pluck('swiped_id')
-                          ->toArray();
+            ->pluck('swiped_id')
+            ->toArray();
 
         $profiles = User::where('id', '!=', $user->id)
-                        ->where('is_active', true)
-                        ->whereNotIn('id', $swipedIds)
-                        ->whereHas('entrepreneurProfile')
-                        ->with(['entrepreneurProfile', 'company', 'goals', 'interests', 'photoGallery'])
-                        ->inRandomOrder()
-                        ->limit(10)
-                        ->get();
+            ->where('is_active', true)
+            ->whereNotIn('id', $swipedIds)
+            ->whereHas('entrepreneurProfile')
+            ->with(['entrepreneurProfile', 'company', 'goals', 'interests', 'photoGallery'])
+            ->inRandomOrder()
+            ->limit(10)
+            ->get();
 
-        
+
         return response()->json([
             'profiles'  => $profiles,
             'count'     => $profiles->count(),
@@ -63,8 +63,8 @@ class DiscoverController extends Controller
         }
 
         $existing = Swipe::where('swiper_id', $user->id)
-                         ->where('swiped_id', $request->swiped_id)
-                         ->first();
+            ->where('swiped_id', $request->swiped_id)
+            ->first();
 
         if ($existing) {
             return response()->json([
@@ -92,7 +92,7 @@ class DiscoverController extends Controller
             'type'      => $request->type,
         ]);
 
-        // ✅ Like/Super Like bildirimi gönder (paket kontrolü servis içinde)
+        // Like/Super Like bildirimi gönder (paket kontrolü servis içinde)
         if (in_array($request->type, ['like', 'super_like'])) {
             $limitCode = $request->type === 'super_like' ? 'daily_super_like' : 'daily_like';
             LimitService::increment($user->id, $limitCode);
@@ -100,11 +100,10 @@ class DiscoverController extends Controller
             // Beğenilen kişiye bildirim (paket kontrolü yapılır)
             $notifyCheck = LimitService::check($request->swiped_id, 'notify_like');
             if ($notifyCheck['allowed']) {
-                NotificationService::sendDirect(
+                NotificationService::send(
                     $request->swiped_id,
                     $request->type,
-                    $request->type === 'super_like' ? 'Süper Beğeni!' : 'Yeni Beğeni!',
-                    "Birisi sizi beğendi!"
+                    ['liker_name' => $user->name]
                 );
             }
         }
@@ -134,9 +133,9 @@ class DiscoverController extends Controller
     private function checkMatch($userId, $swipedId)
     {
         $mutual = Swipe::where('swiper_id', $swipedId)
-                       ->where('swiped_id', $userId)
-                       ->whereIn('type', ['like', 'super_like'])
-                       ->exists();
+            ->where('swiped_id', $userId)
+            ->whereIn('type', ['like', 'super_like'])
+            ->exists();
 
         if (!$mutual) {
             return null;
@@ -198,11 +197,11 @@ class DiscoverController extends Controller
         }
 
         $likers = Swipe::where('swiped_id', $user->id)
-                       ->whereIn('type', ['like', 'super_like'])
-                       ->with('swiper.entrepreneurProfile', 'swiper.company')
-                       ->orderBy('created_at', 'desc')
-                       ->get()
-                       ->pluck('swiper');
+            ->whereIn('type', ['like', 'super_like'])
+            ->with('swiper.entrepreneurProfile', 'swiper.company')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->pluck('swiper');
 
         return response()->json([
             'users' => $likers,
@@ -219,11 +218,11 @@ class DiscoverController extends Controller
         $user = auth('api')->user();
 
         $liked = Swipe::where('swiper_id', $user->id)
-                      ->whereIn('type', ['like', 'super_like'])
-                      ->with('swiped.entrepreneurProfile', 'swiped.company')
-                      ->orderBy('created_at', 'desc')
-                      ->get()
-                      ->pluck('swiped');
+            ->whereIn('type', ['like', 'super_like'])
+            ->with('swiped.entrepreneurProfile', 'swiped.company')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->pluck('swiped');
 
         return response()->json([
             'users' => $liked,

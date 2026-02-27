@@ -3,36 +3,33 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\NotificationTemplate;
 use App\Models\UserNotification;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
-    // =============================================
-    // BİLDİRİMLERİMİ LİSTELE
-    // GET /api/notifications
-    // =============================================
     public function index(Request $request)
     {
         $user = auth('api')->user();
+        $lang = app()->getLocale();
 
         $query = UserNotification::where('user_id', $user->id)
             ->orderBy('created_at', 'desc');
 
-        // Sadece okunmamışlar
         if ($request->boolean('unread_only')) {
             $query->where('is_read', false);
         }
 
         $notifications = $query->paginate($request->per_page ?? 20);
 
+        $notifications->getCollection()->transform(function ($notification) use ($lang) {
+            return self::translateNotification($notification, $lang);
+        });
+
         return response()->json($notifications);
     }
 
-    // =============================================
-    // OKUNMAMIŞ BİLDİRİM SAYISI
-    // GET /api/notifications/unread-count
-    // =============================================
     public function unreadCount()
     {
         $user = auth('api')->user();
@@ -41,39 +38,22 @@ class NotificationController extends Controller
             ->where('is_read', false)
             ->count();
 
-        return response()->json([
-            'unread_count' => $count,
-        ]);
+        return response()->json(['unread_count' => $count]);
     }
 
-    // =============================================
-    // BİLDİRİMİ OKUNDU İŞARETLE
-    // PUT /api/notifications/{id}/read
-    // =============================================
     public function markAsRead($id)
     {
         $user = auth('api')->user();
-
-        $notification = UserNotification::where('user_id', $user->id)
-            ->find($id);
+        $notification = UserNotification::where('user_id', $user->id)->find($id);
 
         if (!$notification) {
-            return response()->json([
-                'message' => 'Bildirim bulunamadı',
-            ], 404);
+            return response()->json(['message' => 'Bildirim bulunamadı'], 404);
         }
 
         $notification->update(['is_read' => true]);
-
-        return response()->json([
-            'message' => 'Bildirim okundu',
-        ]);
+        return response()->json(['message' => 'Bildirim okundu']);
     }
 
-    // =============================================
-    // TÜM BİLDİRİMLERİ OKUNDU İŞARETLE
-    // PUT /api/notifications/read-all
-    // =============================================
     public function markAllAsRead()
     {
         $user = auth('api')->user();
@@ -82,35 +62,52 @@ class NotificationController extends Controller
             ->where('is_read', false)
             ->update(['is_read' => true]);
 
-        return response()->json([
-            'message' => "{$updated} bildirim okundu işaretlendi",
-        ]);
+        return response()->json(['message' => "{$updated} bildirim okundu"]);
     }
 
-    // =============================================
-    // BİLDİRİM SİL
-    // DELETE /api/notifications/{id}
-    // =============================================
     public function destroy($id)
     {
         $user = auth('api')->user();
-
-        $notification = UserNotification::where('user_id', $user->id)
-            ->find($id);
+        $notification = UserNotification::where('user_id', $user->id)->find($id);
 
         if (!$notification) {
-            return response()->json([
-                'message' => 'Bildirim bulunamadı',
-            ], 404);
+            return response()->json(['message' => 'Bildirim bulunamadı'], 404);
         }
 
         $notification->delete();
-
-        return response()->json([
-            'message' => 'Bildirim silindi',
-        ]);
+        return response()->json(['message' => 'Bildirim silindi']);
     }
 
+    private static function translateNotification($notification, $lang)
+    {
+        if (!$notification->template_code) {
+            return $notification;
+        }
 
-    
-} 
+        $template = NotificationTemplate::where('template_code', $notification->template_code)
+            ->where('language_code', $lang)
+            ->first();
+
+        if (!$template) {
+            $template = NotificationTemplate::where('template_code', $notification->template_code)
+                ->where('language_code', 'en')
+                ->first();
+        }
+
+        if ($template) {
+            $variables = $notification->variables ?? [];
+            $notification->title = self::replaceVariables($template->title, $variables);
+            $notification->body = self::replaceVariables($template->content, $variables);
+        }
+
+        return $notification;
+    }
+
+    private static function replaceVariables(string $text, array $variables): string
+    {
+        foreach ($variables as $key => $value) {
+            $text = str_replace('{{' . $key . '}}', $value, $text);
+        }
+        return $text;
+    }
+}
