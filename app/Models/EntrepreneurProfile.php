@@ -9,7 +9,7 @@ class EntrepreneurProfile extends Model
 {
     protected $fillable = [
         'user_id',
-        'category',
+        'category_id',
         'preferred_language',
         'profile_image_url',
         'birth_date',
@@ -34,5 +34,9 @@ class EntrepreneurProfile extends Model
     public function preferredLanguage()
     {
         return $this->belongsTo(SupportedLanguage::class, 'preferred_language', 'code');
+    }
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
     }
 }

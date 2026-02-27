@@ -6,16 +6,12 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('entrepreneur_profiles', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->unique()->constrained('users')->cascadeOnDelete();
-            $table->string('category', 50);
-            //dil-> mail sistemi için referans alacağım 
+            $table->foreignId('category_id')->nullable()->constrained('categories');
             $table->string('preferred_language', 5)->default('en');
             $table->foreign('preferred_language')
                 ->references('code')
@@ -29,9 +25,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('entrepreneur_profiles');

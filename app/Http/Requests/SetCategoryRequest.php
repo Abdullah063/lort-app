@@ -22,7 +22,7 @@ class SetCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category' => 'required|string|in:bireysel,kurumsal,diger',
+            'category_id' => 'required|exists:categories,id',
         ];
     }
 }
