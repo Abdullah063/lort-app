@@ -58,7 +58,7 @@ class GalleryController extends Controller
             'sort_order' => $lastOrder + 1,
         ]);
 
-        // ✅ Kullanımı artır
+        // Kullanımı artır
         LimitService::increment($user->id, 'gallery_limit');
 
         return response()->json([
