@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Category;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Role;
@@ -52,7 +53,7 @@ class TestVerisiSeeder extends Seeder
 
         EntrepreneurProfile::create([
             'user_id'    => $user1->id,
-            'category'   => 'individual',
+            'category_id' => Category::where('code', 'individual')->first()?->id,
             'about_me'   => 'Teknoloji girişimcisi, mobil uygulama geliştirici',
             'is_online'  => true,
         ]);
@@ -106,10 +107,10 @@ class TestVerisiSeeder extends Seeder
         ]);
 
         EntrepreneurProfile::create([
-            'user_id'    => $user2->id,
-            'category'   => 'corporate',
-            'about_me'   => 'E-ticaret uzmanı, dijital pazarlama danışmanı',
-            'is_online'  => false,
+            'user_id'     => $user2->id,
+            'category_id' => Category::where('code', 'corporate')->first()?->id,
+            'about_me'    => 'E-ticaret uzmanı, dijital pazarlama danışmanı',
+            'is_online'   => false,
         ]);
 
         Company::create([
@@ -167,7 +168,7 @@ class TestVerisiSeeder extends Seeder
 
         EntrepreneurProfile::create([
             'user_id'    => $user3->id,
-            'category'   => 'individual',
+            'category_id'   => Category::where('code', 'corporate')->first()?->id,
             'about_me'   => 'Finans sektöründe 10 yıl deneyim, yatırım danışmanı',
             'is_online'  => true,
         ]);
@@ -194,7 +195,7 @@ class TestVerisiSeeder extends Seeder
             'sort_order' => 1,
         ]);
 
-        $this->command->info('✅ 3 test kullanıcısı oluşturuldu:');
+        $this->command->info(' 3 test kullanıcısı oluşturuldu:');
         $this->command->info('   ahmet@test.com  / 123456 (Free)');
         $this->command->info('   ayse@test.com   / 123456 (Silver)');
         $this->command->info('   mehmet@test.com / 123456 (Free)');

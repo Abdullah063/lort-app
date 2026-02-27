@@ -16,7 +16,7 @@ class RecommendationService
             return config('services.gemini.api_key');
         }
 
-        $index = (int) \Illuminate\Support\Facades\Cache::increment('gemini_key_index');
+        $index = (int)Cache::increment('gemini_key_index');
         return $keys[$index % count($keys)];
     }
 
