@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class SupportedLanguage extends Model
 {
-protected $fillable = [
+    protected $fillable = [
         'code',
         'name',
         'is_active',
@@ -19,5 +19,9 @@ protected $fillable = [
             'is_active' => 'boolean',
             'is_default' => 'boolean',
         ];
+    }
+    public function profiles()
+    {
+        return $this->hasMany(EntrepreneurProfile::class, 'preferred_language', 'code');
     }
 }
