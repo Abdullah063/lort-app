@@ -7,6 +7,7 @@ use App\Http\Requests\SelectGoalRequest;
 use App\Models\Goal;
 use App\Services\TranslationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class GoalController extends Controller
 {
@@ -16,10 +17,13 @@ class GoalController extends Controller
     // =============================================
     public function index()
     {
-        $goals = Goal::all(['id', 'name', 'description']);
+        $lang = app()->getLocale();
 
-        // Çoklu dil desteği
-        TranslationService::translateMany('goals', $goals, ['name', 'description']);
+        $goals = Cache::remember("goals_{$lang}", 3600, function () {
+            $goals = Goal::all(['id', 'name', 'description']);
+            TranslationService::translateMany('goals', $goals, ['name', 'description']);
+            return $goals;
+        });
 
         return response()->json([
             'goals' => $goals,

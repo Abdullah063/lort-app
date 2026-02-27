@@ -7,6 +7,7 @@ use App\Http\Requests\SelectInterestRequest;
 use App\Models\Interest;
 use App\Services\TranslationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class InterestController extends Controller
 {
@@ -16,9 +17,13 @@ class InterestController extends Controller
     // =============================================
     public function index()
     {
-        $interests = Interest::all(['id', 'name', 'description']);
+        $lang = app()->getLocale();
 
-        TranslationService::translateMany('interests', $interests, ['name', 'description']);
+        $interests = Cache::remember("interests_{$lang}", 3600, function () {
+            $interests = Interest::all(['id', 'name', 'description']);
+            TranslationService::translateMany('interests', $interests, ['name', 'description']);
+            return $interests;
+        });
 
         return response()->json([
             'interests' => $interests,

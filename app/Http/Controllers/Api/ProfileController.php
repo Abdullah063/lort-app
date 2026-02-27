@@ -8,9 +8,11 @@ use App\Http\Requests\StoreEntrepreneurProfileRequest;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\EntrepreneurProfile;
+use App\Models\Translation;
 use Illuminate\Http\Request;
 
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\WelcomeMail;
 
@@ -79,14 +81,16 @@ class ProfileController extends Controller
     public function setCategory(SetCategoryRequest $request)
     {
         $user = auth('api')->user();
-
         $request->validated();
 
         if ($user->entrepreneurProfile) {
-            $user->entrepreneurProfile->update(['category' => $request->category]);
+            $user->entrepreneurProfile->update(['category_id' => $request->category_id]);
         } else {
+            // Fallback - profil yoksa oluştur (normalde register'da oluşmuş olmalı)
+            $lang = $request->input('_locale', 'en');
             $user->entrepreneurProfile()->create([
-                'category' => $request->category,
+                'category_id'        => $request->category_id,
+                'preferred_language' => $lang,
             ]);
         }
 
@@ -118,7 +122,7 @@ class ProfileController extends Controller
             ]);
         } else {
             $profile = $user->entrepreneurProfile()->create([
-                'category'          => $user->entrepreneurProfile?->category ?? 'bireysel',
+                'category_id' => $user->entrepreneurProfile?->category_id,
                 'profile_image_url' => $request->profile_image_url,
                 'about_me'          => $request->about_me,
                 'birth_date'        => $request->birth_date,
@@ -143,10 +147,10 @@ class ProfileController extends Controller
     public function show()
     {
         $user = auth('api')->user();
-
+        $lang = request()->input('_locale', 'en');
 
         $user->load([
-            'entrepreneurProfile',
+            'entrepreneurProfile.category',
             'company',
             'goals',
             'interests',
@@ -154,6 +158,43 @@ class ProfileController extends Controller
             'roles',
             'activeMembership.packageDefinition',
         ]);
+
+        // Goals çevirisi
+        $user->goals->transform(function ($goal) use ($lang) {
+            $goal->name = Translation::where('table_name', 'goals')
+                ->where('record_id', $goal->id)
+                ->where('field_name', 'name')
+                ->where('language_code', $lang)
+                ->first()?->value ?? $goal->name;
+
+            $goal->description = Translation::where('table_name', 'goals')
+                ->where('record_id', $goal->id)
+                ->where('field_name', 'description')
+                ->where('language_code', $lang)
+                ->first()?->value ?? $goal->description;
+
+            return $goal;
+        });
+
+        // Interests çevirisi
+        $user->interests->transform(function ($interest) use ($lang) {
+            $interest->name = Translation::where('table_name', 'interests')
+                ->where('record_id', $interest->id)
+                ->where('field_name', 'name')
+                ->where('language_code', $lang)
+                ->first()?->value ?? $interest->name;
+
+            return $interest;
+        });
+
+        // Category çevirisi
+        if ($user->entrepreneurProfile?->category) {
+            $user->entrepreneurProfile->category->name = Translation::where('table_name', 'categories')
+                ->where('record_id', $user->entrepreneurProfile->category_id)
+                ->where('field_name', 'name')
+                ->where('language_code', $lang)
+                ->first()?->value ?? $user->entrepreneurProfile->category->name;
+        }
 
         return response()->json([
             'user' => $user,
@@ -180,7 +221,7 @@ class ProfileController extends Controller
         $request->validated();
 
         $profile->update($request->only([
-            'category',
+            'category_id',
             'profile_image_url',
             'birth_date',
             'about_me',
@@ -189,6 +230,36 @@ class ProfileController extends Controller
         return response()->json([
             'message' => 'Profil güncellendi',
             'profile' => $profile->fresh(),
+        ]);
+    }
+    // =============================================
+    // DİL TERCİHİ GÜNCELLE
+    // PUT /api/profile/language
+    // =============================================
+    public function updateLanguage(Request $request)
+    {
+        $request->validate([
+            'language' => 'required|string|exists:supported_languages,code',
+        ]);
+
+        $user = auth('api')->user();
+        $profile = $user->entrepreneurProfile;
+
+        if (!$profile) {
+            return response()->json([
+                'message' => 'Önce profil oluşturmalısınız',
+            ], 404);
+        }
+
+        $profile->update([
+            'preferred_language' => $request->language,
+        ]);
+
+        Cache::forget("user_lang_{$user->id}");
+
+        return response()->json([
+            'message' => 'Dil tercihi güncellendi',
+            'language' => $request->language,
         ]);
     }
 }

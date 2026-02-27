@@ -44,6 +44,11 @@ class AuthController extends Controller
             'phone'    => $request->phone,
         ]);
 
+        $lang = substr($request->header('Accept-Language', 'en'), 0, 2);
+        $user->entrepreneurProfile()->create([
+            'preferred_language' => $lang,
+        ]);
+
         // 3. Varsayılan "user" rolünü ata
         $userRole = Role::where('name', 'user')->first();
         if ($userRole) {
@@ -178,6 +183,11 @@ class AuthController extends Controller
             'phone'   => $request->phone,
         ]);
 
+        $lang = substr($request->header('Accept-Language', 'en'), 0, 2);
+        $user->entrepreneurProfile()->create([
+            'preferred_language' => $lang,
+        ]);
+
         $this->assignFreePackage($user);
 
         if ($request->email) {
@@ -270,6 +280,12 @@ class AuthController extends Controller
                 'provider_id' => $socialUser['provider_id'],
                 'avatar'      => $socialUser['avatar'],
             ]);
+            
+            $lang = substr($request->header('Accept-Language', 'en'), 0, 2);
+            $user->entrepreneurProfile()->create([
+                'preferred_language' => $lang,
+            ]);
+
 
             $userRole = Role::where('name', 'user')->first();
             if ($userRole) {

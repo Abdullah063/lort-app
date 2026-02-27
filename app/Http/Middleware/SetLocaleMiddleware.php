@@ -4,29 +4,26 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use App\Models\SupportedLanguage;
 
 class SetLocaleMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        // 1. Header'dan dil kodunu al
-        $lang = $request->header('Accept-Language', 'en');
-        $lang = substr($lang, 0, 2);
-        $supported = SupportedLanguage::where('code', $lang)
-            ->where('is_active', true)
-            ->exists();
+        $lang = substr($request->header('Accept-Language', 'en'), 0, 2);
 
-        if (!$supported) {
-            // Varsayılan dili bul
-            $default = SupportedLanguage::where('is_default', true)->first();
-            $lang = $default ? $default->code : 'en';
+        $supportedCodes = Cache::remember('supported_languages', 86400, function () {
+            return SupportedLanguage::where('is_active', true)->pluck('code')->toArray();
+        });
+
+        if (!in_array($lang, $supportedCodes)) {
+            $lang = Cache::remember('default_language', 86400, function () {
+                return SupportedLanguage::where('is_default', true)->first()?->code ?? 'en';
+            });
         }
 
-        // 3. Uygulama dilini ayarla
         app()->setLocale($lang);
-
-        // 4. Request'e dil bilgisini ekle (controller'larda kullanmak için)
         $request->merge(['_locale' => $lang]);
 
         return $next($request);
