@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\UserController as AdminUserController;
 use App\Http\Controllers\Api\MembershipController as AdminMembershipController;
 use App\Http\Controllers\Api\AdminRecommendationController; //  ilerde düzenleeyceğim inşallahhhh
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
 
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RecommendationApiController;
@@ -186,7 +187,8 @@ Route::middleware('auth:api')
             Route::delete('/{id}', [NotificationController::class, 'destroy']);
         });
 
-
+        // Broadcasting Auth (Pusher)
+        Broadcast::routes(['middleware' => ['auth:api']]);
 
         // Auth gerektirenler mevcut middleware grubuna ekle
         Route::prefix('payment')->group(function () {
